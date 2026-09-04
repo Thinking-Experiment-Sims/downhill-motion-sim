@@ -1201,3 +1201,240 @@ footer {
   color: var(--subtle);
   padding: 1rem 0;
 }
+
+/* ==========================================================================
+   Renaissance Theme: Galileo Galilei (Anno Domini 1638)
+   Transforms the entire interface into a 17th-century Florentine manuscript
+   ========================================================================== */
+body.theme-galileo {
+  background-color: #f6f1e5;
+  background-image:
+    radial-gradient(#d6c6a5 0.75px, transparent 0.75px),
+    radial-gradient(ellipse at 50% 0%, #fffcf5 0%, #f5efe3 50%, #eae0ce 100%);
+  background-size: 26px 26px, 100% 100%;
+  color: #3b2818;
+  font-family: "EB Garamond", "Baskerville", "Palatino", "Georgia", serif;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+body.theme-galileo .bg-grid {
+  background-image: 
+    linear-gradient(to right, rgba(184, 101, 16, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(184, 101, 16, 0.04) 1px, transparent 1px);
+}
+
+body.theme-galileo .hero {
+  background: #fbf7ee;
+  border: 1.5px solid #d4c2a5;
+  border-left: 6px solid #b86510;
+  box-shadow: 0 6px 24px rgba(80, 50, 20, 0.08);
+}
+
+body.theme-galileo .hero h1 {
+  font-family: "Cinzel", "EB Garamond", serif;
+  font-size: 1.75rem;
+  color: #17424d;
+  letter-spacing: 0.02em;
+}
+
+body.theme-galileo .hero-subtitle {
+  color: #553c26;
+  font-style: italic;
+  font-size: 0.98rem;
+}
+
+body.theme-galileo .brand-badge {
+  background: #f3ebda;
+  border-color: #d8c7ad;
+  color: #5c3a1e;
+  font-family: "Cinzel", "EB Garamond", serif;
+}
+
+body.theme-galileo .lab-badge {
+  background: rgba(184, 101, 16, 0.12);
+  border-color: #d4a770;
+  color: #8f4602;
+  font-family: "Cinzel", "EB Garamond", serif;
+}
+
+body.theme-galileo .lab-tab {
+  font-family: "Cinzel", "EB Garamond", serif;
+  font-size: 0.88rem;
+  background: #fdfaf4;
+  border: 1.5px solid #d8caa8;
+  color: #5c3a1e;
+}
+
+body.theme-galileo .lab-tab.active {
+  background: #b86510;
+  border-color: #964803;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(184, 101, 16, 0.3);
+}
+
+body.theme-galileo .card,
+body.theme-galileo .panel,
+body.theme-galileo .canvas-card {
+  background: #fcf9f2;
+  border: 1.5px solid #d8caa8;
+  box-shadow: 0 6px 24px rgba(70, 45, 20, 0.07);
+}
+
+body.theme-galileo .canvas-viewport {
+  background: #fcf8f0;
+  border-color: #cbbaa1;
+}
+
+body.theme-galileo .panel-title,
+body.theme-galileo .section-title {
+  font-family: "Cinzel", "EB Garamond", serif;
+  color: #17424d;
+  letter-spacing: 0.02em;
+}
+
+body.theme-galileo .metrics-bar.galileo-metrics {
+  background: #f5eedf;
+  border: 1.5px solid #d8caa8;
+}
+
+body.theme-galileo .metric-pill {
+  background: #faf5eb;
+  border-color: #dccbb0;
+}
+
+body.theme-galileo .metric-label {
+  font-family: "Cinzel", "EB Garamond", serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: #724c28;
+}
+
+body.theme-galileo .metric-value {
+  font-family: "EB Garamond", "Georgia", serif;
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: #17424d;
+}
+
+body.theme-galileo .btn-primary {
+  background: #b86510;
+  border-color: #964803;
+  color: #ffffff;
+  font-family: "Cinzel", "EB Garamond", serif;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(184, 101, 16, 0.25);
+}
+
+body.theme-galileo .btn-primary:hover {
+  background: #964803;
+}
+
+body.theme-galileo .btn-ghost {
+  background: #f7efe2;
+  border-color: #d4c2a5;
+  color: #5c3a1e;
+  font-family: "Cinzel", "EB Garamond", serif;
+}
+
+body.theme-galileo .btn-ghost:hover {
+  background: #ede1ce;
+}
+
+body.theme-galileo .btn-accent {
+  background: #0f7e9b;
+  border-color: #0c677f;
+  color: #ffffff;
+  font-family: "Cinzel", "EB Garamond", serif;
+}
+
+body.theme-galileo .fret-card {
+  background: #fbf7ef;
+  border: 1.5px solid #d4c2a5;
+  box-shadow: 0 2px 8px rgba(92, 58, 30, 0.06);
+}
+
+body.theme-galileo .fret-card.active-rung {
+  border-color: #d67b19;
+  background: #fdf5ea;
+  box-shadow: 0 0 16px rgba(214, 123, 25, 0.3);
+}
+
+body.theme-galileo .fret-badge {
+  font-family: "Cinzel", serif;
+  background: #eddcc5;
+  color: #5c3a1e;
+  border: 1px solid #d8caa8;
+}
+
+body.theme-galileo .galileo-cadence-box {
+  background: #fbf7ef;
+  border: 1.5px solid #d4c2a5;
+}
+
+body.theme-galileo .data-table {
+  border-color: #d8caa8;
+}
+
+body.theme-galileo .data-table th {
+  background: #ede0cd;
+  border-color: #d8caa8;
+  color: #442a15;
+  font-family: "Cinzel", serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+body.theme-galileo .data-table td {
+  border-color: #e5d8c3;
+  color: #3b2818;
+  font-size: 0.94rem;
+}
+
+body.theme-galileo .data-table tr:hover {
+  background: #f5eedf;
+}
+
+body.theme-galileo .galileo-dossier {
+  background: #faf6ec;
+  border: 2px solid #d4c2a5;
+  border-left: 6px solid #b86510;
+  box-shadow: 0 8px 30px rgba(92, 58, 30, 0.1);
+}
+
+body.theme-galileo .artifact-card {
+  background: #fdfaf4;
+  border: 1.5px solid #d8caa8;
+}
+
+body.theme-galileo .artifact-card h3 {
+  font-family: "Cinzel", "EB Garamond", serif;
+  color: #17424d;
+}
+
+body.theme-galileo .artifact-link {
+  font-family: "Cinzel", "EB Garamond", serif;
+  border-color: #d4a770;
+  background: #f9f1e3;
+  color: #8f4602;
+}
+
+body.theme-galileo .artifact-link:hover {
+  background: #b86510;
+  color: #ffffff;
+}
+
+body.theme-galileo .sidebar-card {
+  background: #fcf9f2;
+  border: 1.5px solid #d8caa8;
+}
+
+body.theme-galileo .slider-group label {
+  font-family: "Cinzel", "EB Garamond", serif;
+  color: #4a2e16;
+}
+
+body.theme-galileo .toggle-item {
+  color: #4a2e16;
+}
+

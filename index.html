@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lab: Downhill Motion | The Thinking Experiment</title>
   <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="src/downhillApp.js"></script>
 </head>
@@ -18,9 +21,9 @@
       <div class="hero-top">
         <div>
           <a href="https://thinking-experiment-sims.github.io/interactive-physics/" class="brand-badge" title="Return to Physics Simulations Hub">← The Thinking Experiment</a>
-          <span class="lab-badge">📐 Physics Lab Activity</span>
-          <h1>Lab: Downhill Motion</h1>
-          <p class="hero-subtitle">
+          <span class="lab-badge" id="heroTag">📐 Physics Lab Activity</span>
+          <h1 id="heroTitle">Lab: Downhill Motion</h1>
+          <p class="hero-subtitle" id="heroSubtitle">
             Determine the mathematical relationship between position and time for an object rolling down an incline with constant acceleration, and use the graph's tangent slopes to construct an instantaneous velocity-time model.
           </p>
         </div>
@@ -346,18 +349,18 @@
         </div>
 
         <div class="artifact-card">
-          <h3>🎬 Historical Demonstration Video</h3>
-          <p>Watch the official Museo Galileo reconstruction demonstrating the rolling sphere, brass chime bells, and water clock in action.</p>
-          <a href="https://www.youtube.com/watch?v=R9KjC3h68dM" target="_blank" rel="noopener" class="artifact-link">
-            ▶ Watch Museo Galileo Demo (YouTube) →
+          <h3>🎬 Historical Reconstruction Video</h3>
+          <p>Watch the official Museo Galileo reconstruction demonstration showing the rolling bronze sphere, gut frets, brass bells, and water clock in action.</p>
+          <a href="https://catalogue.museogalileo.it/multimedia/InclinedPlane.html" target="_blank" rel="noopener" class="artifact-link">
+            ▶ Watch Museo Galileo Video &amp; 3D Animation →
           </a>
         </div>
 
         <div class="artifact-card">
-          <h3>🎥 Museo Galileo Multimedia Portal</h3>
-          <p>Explore detailed virtual 3D models, animation of the bell striking mechanics, and historical explanations of the experiment.</p>
-          <a href="https://catalogue.museogalileo.it/multimedia/InclinedPlane.html" target="_blank" rel="noopener" class="artifact-link">
-            🎬 Museo Galileo Multimedia Portal →
+          <h3>📹 Archival Video Stream</h3>
+          <p>Direct archival video stream from the Institute and Museum of the History of Science (Museo Galileo) collections in Florence, Italy.</p>
+          <a href="https://video.museogalileo.it/cat/e500045.mp4" target="_blank" rel="noopener" class="artifact-link">
+            🎥 Play Official Archival Video (.mp4) →
           </a>
         </div>
       </div>
@@ -542,7 +545,7 @@
     </div>
 
     <!-- Analysis & Model Comparison (Parts 6 & 7) -->
-    <section class="panel">
+    <section class="panel" id="panelParts67">
       <div class="panel-header">
         <div>
           <h2 class="panel-title">💡 Parts 6 &amp; 7: Analysis &amp; Conclusion Guide</h2>

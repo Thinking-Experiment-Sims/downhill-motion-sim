@@ -275,6 +275,10 @@ export class DownhillMotionApp {
     this.cmpSlopeM = document.getElementById('cmpSlopeM');
     this.cmpCoeffB = document.getElementById('cmpCoeffB');
     this.cmpInterceptB = document.getElementById('cmpInterceptB');
+    this.panelParts67 = document.getElementById('panelParts67');
+    this.heroTag = document.getElementById('heroTag');
+    this.heroTitle = document.getElementById('heroTitle');
+    this.heroSubtitle = document.getElementById('heroSubtitle');
     this.toastNotification = document.getElementById('toastNotification');
   }
 
@@ -515,9 +519,28 @@ export class DownhillMotionApp {
       this.panelGalileoHistory.style.display = mode === 'galileo' ? 'block' : 'none';
     }
 
-    // Modern analysis panel is HIDDEN in Galileo mode (Galileo did not use clocks or calculus tangents)
+    // Modern analysis panel & Parts 6 & 7 Guide are HIDDEN in Galileo mode (Galileo did not use clocks or calculus tangents)
     if (this.panelModernAnalysis) {
       this.panelModernAnalysis.style.display = mode === 'galileo' ? 'none' : 'grid';
+    }
+    if (this.panelParts67) {
+      this.panelParts67.style.display = mode === 'galileo' ? 'none' : 'block';
+    }
+
+    // Toggle full Renaissance aesthetic theme on document body
+    document.body.classList.toggle('theme-galileo', mode === 'galileo');
+
+    // Dynamic hero header banner for Renaissance mode
+    if (this.heroTag && this.heroTitle && this.heroSubtitle) {
+      if (mode === 'galileo') {
+        this.heroTag.textContent = '📜 Renaissance Historical Experiment (1638)';
+        this.heroTitle.textContent = 'Galileo: Diluting Gravity (De Motu Accelerato)';
+        this.heroSubtitle.textContent = 'Reconstruct Galileo\'s classic inclined plane experiment. Listen to the musical cadence of the brass bells, adjust sheep-gut frets to test the odd-number rule, and measure time with the Clepsydra water balance.';
+      } else {
+        this.heroTag.textContent = '📐 Physics Lab Activity';
+        this.heroTitle.textContent = 'Lab: Downhill Motion';
+        this.heroSubtitle.textContent = 'Determine the mathematical relationship between position and time for an object rolling down an incline with constant acceleration, and use the graph\'s tangent slopes to construct an instantaneous velocity-time model.';
+      }
     }
 
     // Metrics bar toggle
