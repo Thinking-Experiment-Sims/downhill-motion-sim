@@ -32,7 +32,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.arcTo(x + width, y, x + width, y + height, r);
   ctx.arcTo(x + width, y + height, x, y + height, r);
   ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y + width, y, r);
+  ctx.arcTo(x, y, x + r, y, r);
   ctx.closePath();
 }
 
@@ -143,14 +143,18 @@ export class DownhillMotionApp {
     this.passedGates = new Set();
     this.gateFlashMap = new Map();
 
-    // Galileo frets / bells (placed at 1, 4, 9, 16 units)
+    // Galileo frets / bells (placed along the groove)
     this.galileoBells = [
-      { id: 1, x: 0.16, rung: false, freq: 880 },
-      { id: 2, x: 0.16 + 0.14, rung: false, freq: 987 },
-      { id: 3, x: 0.16 + 0.56, rung: false, freq: 1108 },
-      { id: 4, x: 0.16 + 1.26, rung: false, freq: 1318 },
-      { id: 5, x: 0.16 + 2.14, rung: false, freq: 1568 }
+      { id: 1, note: 'C5', x: 0.25, rung: false, chimeTime: null, freq: 523.25 },
+      { id: 2, note: 'D5', x: 0.52, rung: false, chimeTime: null, freq: 587.33 },
+      { id: 3, note: 'E5', x: 0.97, rung: false, chimeTime: null, freq: 659.25 },
+      { id: 4, note: 'G5', x: 1.60, rung: false, chimeTime: null, freq: 783.99 },
+      { id: 5, note: 'A5', x: 2.40, rung: false, chimeTime: null, freq: 880.00 }
     ];
+    this.galileoChimes = [];
+    this.hoveredBell = null;
+    this.draggingBell = null;
+    this.bellRipples = [];
 
     // Data points & models
     this.recordedPoints = [];
@@ -181,8 +185,28 @@ export class DownhillMotionApp {
 
     // Panels
     this.panelMetronome = document.getElementById('panelMetronome');
+    this.panelGalileoBells = document.getElementById('panelGalileoBells');
     this.panelStopwatch = document.getElementById('panelStopwatch');
     this.panelGalileoHistory = document.getElementById('panelGalileoHistory');
+
+    // Galileo Bell Controls & Presets
+    this.tbodyGalileoChimes = document.getElementById('tbodyGalileoChimes');
+    this.verdictGalileoTempo = document.getElementById('verdictGalileoTempo');
+    this.btnPresetGalileoOdd = document.getElementById('btnPresetGalileoOdd');
+    this.btnPresetGalileoEqualDist = document.getElementById('btnPresetGalileoEqualDist');
+    this.btnPresetGalileoScramble = document.getElementById('btnPresetGalileoScramble');
+    this.btnTransferGalileoData = document.getElementById('btnTransferGalileoData');
+
+    this.fretSliders = [];
+    this.fretVals = [];
+    this.fretDists = [];
+    this.fretCards = [];
+    for (let i = 1; i <= 5; i++) {
+      this.fretSliders.push(document.getElementById(`sliderFret${i}`));
+      this.fretVals.push(document.getElementById(`valFret${i}`));
+      this.fretDists.push(document.getElementById(`distFret${i}`));
+      this.fretCards.push(document.getElementById(`cardFret${i}`));
+    }
 
     // Metronome controls
     this.metronomeLed = document.getElementById('metronomeLed');
@@ -321,14 +345,69 @@ export class DownhillMotionApp {
       }
     });
 
-    // Incline canvas click allows student to click directly on track to mark
+    // Incline canvas click allows student to click directly on track to mark in metronome mode
     this.canvasApp.addEventListener('click', (e) => {
-      if (this.labMode === 'metronome' || this.labMode === 'galileo') {
+      if (this.labMode === 'metronome') {
         const rect = this.canvasApp.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         this.handleTrackClick(clickX);
       }
     });
+
+    // Interactive Galileo Bell Dragging on Canvas (Pointer events for mouse & touch)
+    this.canvasApp.addEventListener('pointerdown', (e) => this.handleCanvasPointerDown(e));
+    window.addEventListener('pointermove', (e) => this.handleCanvasPointerMove(e));
+    window.addEventListener('pointerup', (e) => this.handleCanvasPointerUp(e));
+    window.addEventListener('pointercancel', (e) => this.handleCanvasPointerUp(e));
+
+    // Galileo Fret Sliders
+    this.fretSliders.forEach((slider, idx) => {
+      if (slider) {
+        slider.addEventListener('input', (e) => {
+          const val = parseFloat(e.target.value);
+          this.galileoBells[idx].x = val;
+          this.updateGalileoBellUI();
+          if (!this.isRunning) {
+            this.resetSimulation();
+          }
+          this.renderApparatus();
+        });
+      }
+    });
+
+    // Galileo Preview Chime Buttons
+    document.querySelectorAll('.btn-ring-preview').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const fretId = parseInt(e.currentTarget.getAttribute('data-fret'), 10);
+        const bell = this.galileoBells.find(b => b.id === fretId);
+        if (bell) {
+          this.audio.playBell(bell.freq);
+          this.bellRipples.push({
+            x: bell.x,
+            freq: bell.freq,
+            startTime: performance.now(),
+            duration: 600
+          });
+          this.renderApparatus();
+        }
+      });
+    });
+
+    // Galileo Presets
+    if (this.btnPresetGalileoOdd) {
+      this.btnPresetGalileoOdd.addEventListener('click', () => this.applyGalileoPreset('odd'));
+    }
+    if (this.btnPresetGalileoEqualDist) {
+      this.btnPresetGalileoEqualDist.addEventListener('click', () => this.applyGalileoPreset('equal_dist'));
+    }
+    if (this.btnPresetGalileoScramble) {
+      this.btnPresetGalileoScramble.addEventListener('click', () => this.applyGalileoPreset('scramble'));
+    }
+
+    // Galileo Data Transfer
+    if (this.btnTransferGalileoData) {
+      this.btnTransferGalileoData.addEventListener('click', () => this.transferGalileoData());
+    }
 
     // Simulation controls
     this.btnPlay.addEventListener('click', () => this.togglePlay());
@@ -408,7 +487,10 @@ export class DownhillMotionApp {
 
     // Show/hide mode panels
     if (this.panelMetronome) {
-      this.panelMetronome.style.display = (mode === 'metronome' || mode === 'galileo') ? 'flex' : 'none';
+      this.panelMetronome.style.display = mode === 'metronome' ? 'flex' : 'none';
+    }
+    if (this.panelGalileoBells) {
+      this.panelGalileoBells.style.display = mode === 'galileo' ? 'block' : 'none';
     }
     if (this.panelStopwatch) {
       this.panelStopwatch.style.display = mode === 'stopwatch' ? 'block' : 'none';
@@ -436,6 +518,11 @@ export class DownhillMotionApp {
       this.valAngle.textContent = '6.0°';
       this.metricAngle.textContent = '6.0°';
       this.updateAcceleration();
+    }
+
+    if (mode === 'galileo') {
+      this.updateGalileoBellUI();
+      this.updateGalileoChimeTable();
     }
 
     // Automatically erase previous data when clicking a different tab
@@ -468,15 +555,16 @@ export class DownhillMotionApp {
     }
 
     // Auto-log release point t = 0.00s at front bumper position x0 = 0.16m
-    if (this.currentTime === 0.0 && (this.labMode === 'metronome' || this.labMode === 'galileo')) {
-      if (this.labMode === 'galileo') {
-        this.audio.playBell(880);
-      } else {
+    if (this.currentTime === 0.0) {
+      if (this.labMode === 'metronome') {
         this.audio.playTick(true);
+        this.flashMetronomeLed();
+        this.markedBeats.set(0, { beat: 0, t: 0.00, x: this.x0, actualX: this.x0 });
+        this.addRecordPoint(0.00, this.x0, 0.00, this.labMode);
+      } else if (this.labMode === 'galileo') {
+        this.audio.playBell(440);
+        this.addRecordPoint(0.00, this.x0, 0.00, this.labMode);
       }
-      this.flashMetronomeLed();
-      this.markedBeats.set(0, { beat: 0, t: 0.00, x: this.x0, actualX: this.x0 });
-      this.addRecordPoint(0.00, this.x0, 0.00, this.labMode);
     }
 
     this.isRunning = true;
@@ -513,7 +601,11 @@ export class DownhillMotionApp {
     // Reset Galileo bells
     for (const bell of this.galileoBells) {
       bell.rung = false;
+      bell.chimeTime = null;
     }
+    this.galileoChimes = [];
+    this.bellRipples = [];
+    this.updateGalileoChimeTable();
 
     if (this.valCurrentBeat) {
       this.valCurrentBeat.textContent = 'Beat #0 (Ready / Release)';
@@ -560,16 +652,12 @@ export class DownhillMotionApp {
     this.currentX = positionAtTime(this.currentTime, this.x0, this.v0, this.currentA);
     this.currentV = velocityAtTime(this.currentTime, this.v0, this.currentA);
 
-    // Metronome 1-second beat tracking
-    if (this.labMode === 'metronome' || this.labMode === 'galileo') {
+    // Metronome 1-second beat tracking (only in Metronome mode)
+    if (this.labMode === 'metronome') {
       if (this.currentTime >= this.nextBeatTime && this.currentX < this.trackLength) {
         this.currentBeat++;
         this.nextBeatTime += this.metronomeInterval;
-        if (this.labMode === 'galileo') {
-          this.audio.playBell(1000 + this.currentBeat * 100);
-        } else {
-          this.audio.playTick(this.currentBeat === 1);
-        }
+        this.audio.playTick(this.currentBeat === 1);
         this.flashMetronomeLed();
 
         if (this.valCurrentBeat) {
@@ -580,10 +668,52 @@ export class DownhillMotionApp {
 
     // Galileo bells checking: chime when bronze ball rolls past fret
     if (this.labMode === 'galileo') {
-      for (const bell of this.galileoBells) {
+      for (let i = 0; i < this.galileoBells.length; i++) {
+        const bell = this.galileoBells[i];
         if (!bell.rung && this.currentX >= bell.x) {
           bell.rung = true;
+          bell.chimeTime = this.currentTime;
           this.audio.playBell(bell.freq);
+          this.bellRipples.push({
+            x: bell.x,
+            freq: bell.freq,
+            startTime: performance.now(),
+            duration: 600
+          });
+
+          // Compute interval Δt and distance Δx
+          const prevTime = this.galileoChimes.length > 0 ? this.galileoChimes[this.galileoChimes.length - 1].t : 0.00;
+          const dt = Math.max(0.01, bell.chimeTime - prevTime);
+          const dx = Math.max(0.00, bell.x - this.x0);
+
+          // Odd-ratio comparison relative to first bell displacement
+          const firstDx = this.galileoChimes.length > 0 ? this.galileoChimes[0].dx : dx;
+          const ratioNum = firstDx > 0.01 ? (dx / firstDx).toFixed(1) : '1.0';
+
+          const chimeRecord = {
+            id: bell.id,
+            note: bell.note,
+            x: bell.x,
+            dx: dx,
+            t: bell.chimeTime,
+            dt: dt,
+            ratio: `${ratioNum}×`
+          };
+          this.galileoChimes.push(chimeRecord);
+
+          // Flash active fret card
+          if (this.fretCards && this.fretCards[i]) {
+            this.fretCards[i].classList.add('active-rung');
+            setTimeout(() => {
+              if (this.fretCards[i]) this.fretCards[i].classList.remove('active-rung');
+            }, 600);
+          }
+
+          // Auto-log into main recordedPoints table for analysis
+          const vInst = velocityAtTime(bell.chimeTime, this.v0, this.currentA);
+          this.addRecordPoint(bell.chimeTime, bell.x, vInst, 'galileo');
+
+          this.updateGalileoChimeTable();
         }
       }
     }
@@ -669,6 +799,243 @@ export class DownhillMotionApp {
     this.showToast(`🖊 Marked on track: Beat #${targetBeat} at ${clickedX.toFixed(2)} m`);
   }
 
+  getTrackCoordsFromEvent(e) {
+    const rect = this.canvasApp.getBoundingClientRect();
+    const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    const mouseX = clientX - rect.left;
+    const mouseY = clientY - rect.top;
+
+    const padX = 60;
+    const w = this.canvasApp.clientWidth;
+    const h = this.canvasApp.clientHeight;
+    const benchY = h - 35;
+    const topMargin = 72;
+    const maxRise = benchY - topMargin;
+    const angleRad = (this.angleDeg * Math.PI) / 180;
+    const sinAngle = Math.sin(angleRad);
+    const cosAngle = Math.cos(angleRad);
+    const availW = w - padX * 2;
+    const trackPixelLength = Math.min(availW, maxRise / sinAngle);
+
+    const originX = padX;
+    const originY = benchY - sinAngle * trackPixelLength;
+
+    const dx = mouseX - originX;
+    const dy = mouseY - originY;
+
+    // In track coordinate frame: trackX along track, trackY perpendicular down
+    const trackX = dx * cosAngle + dy * sinAngle;
+    const trackY = -dx * sinAngle + dy * cosAngle;
+
+    const fraction = trackX / trackPixelLength;
+    const metersX = fraction * this.trackLength;
+
+    return {
+      mouseX,
+      mouseY,
+      trackX,
+      trackY,
+      trackPixelLength,
+      fraction,
+      metersX
+    };
+  }
+
+  findBellAtCoords(coords) {
+    if (this.labMode !== 'galileo') return null;
+    const { trackX, trackY, trackPixelLength } = coords;
+    // Bell bracket extends between trackY = -60 and trackY = 25
+    if (trackY < -60 || trackY > 25) return null;
+
+    for (const bell of this.galileoBells) {
+      const bellPx = (bell.x / this.trackLength) * trackPixelLength;
+      if (Math.abs(trackX - bellPx) <= 16) {
+        return bell;
+      }
+    }
+    return null;
+  }
+
+  handleCanvasPointerDown(e) {
+    if (this.labMode !== 'galileo') return;
+    const coords = this.getTrackCoordsFromEvent(e);
+    const hitBell = this.findBellAtCoords(coords);
+    if (hitBell) {
+      this.draggingBell = hitBell;
+      this.hoveredBell = hitBell;
+      this.canvasApp.style.cursor = 'grabbing';
+      if (this.canvasApp.setPointerCapture && e.pointerId !== undefined) {
+        try { this.canvasApp.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      this.renderApparatus();
+    }
+  }
+
+  handleCanvasPointerMove(e) {
+    if (this.labMode !== 'galileo') return;
+    const coords = this.getTrackCoordsFromEvent(e);
+
+    if (this.draggingBell) {
+      let newX = Math.round(coords.metersX * 100) / 100;
+      // Clamp between 0.18m and trackLength (2.40m)
+      newX = Math.max(0.18, Math.min(this.trackLength, newX));
+      this.draggingBell.x = newX;
+      this.updateGalileoBellUI();
+      if (!this.isRunning) {
+        this.resetSimulation();
+      }
+      this.renderApparatus();
+    } else {
+      const hitBell = this.findBellAtCoords(coords);
+      if (hitBell !== this.hoveredBell) {
+        this.hoveredBell = hitBell;
+        this.canvasApp.style.cursor = hitBell ? 'ew-resize' : 'default';
+        this.renderApparatus();
+      }
+    }
+  }
+
+  handleCanvasPointerUp(e) {
+    if (this.draggingBell) {
+      if (this.canvasApp.releasePointerCapture && e.pointerId !== undefined) {
+        try { this.canvasApp.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+      this.draggingBell = null;
+      this.canvasApp.style.cursor = this.hoveredBell ? 'ew-resize' : 'default';
+      this.renderApparatus();
+    }
+  }
+
+  updateGalileoBellUI() {
+    this.galileoBells.forEach((bell, idx) => {
+      const slider = this.fretSliders[idx];
+      const valSpan = this.fretVals[idx];
+      const distSpan = this.fretDists[idx];
+      if (slider) slider.value = bell.x;
+      if (valSpan) valSpan.textContent = `${bell.x.toFixed(2)} m`;
+      if (distSpan) {
+        const dx = Math.max(0, bell.x - this.x0);
+        const baseDx = Math.max(0.01, this.galileoBells[0].x - this.x0);
+        const ratio = idx === 0 ? '1.0' : (dx / baseDx).toFixed(1);
+        distSpan.textContent = `Δx = ${dx.toFixed(2)} m (${ratio}×)`;
+      }
+    });
+  }
+
+  applyGalileoPreset(type) {
+    if (type === 'odd') {
+      // 1 : 4 : 9 : 16 : 25 spacing relative to start x0 = 0.16m
+      const unit = 0.09;
+      const positions = [
+        0.16 + 1 * unit,   // 0.25 m
+        0.16 + 4 * unit,   // 0.52 m
+        0.16 + 9 * unit,   // 0.97 m
+        0.16 + 16 * unit,  // 1.60 m
+        0.16 + 25 * unit   // 2.41 -> 2.40 m
+      ];
+      this.galileoBells.forEach((bell, idx) => {
+        bell.x = Math.min(this.trackLength, parseFloat(positions[idx].toFixed(2)));
+      });
+      this.showToast("🎵 Set Galileo's Odd-Number Rule (1 : 4 : 9 : 16 : 25) for equal musical cadence!");
+    } else if (type === 'equal_dist') {
+      // Equal distance intervals (accelerating beats)
+      const positions = [0.50, 0.95, 1.40, 1.85, 2.30];
+      this.galileoBells.forEach((bell, idx) => {
+        bell.x = positions[idx];
+      });
+      this.showToast("📏 Set Equal Distance Spacing: Listen to how the tempo accelerates!");
+    } else if (type === 'scramble') {
+      const randomPositions = [
+        parseFloat((0.24 + Math.random() * 0.18).toFixed(2)),
+        parseFloat((0.50 + Math.random() * 0.22).toFixed(2)),
+        parseFloat((0.90 + Math.random() * 0.25).toFixed(2)),
+        parseFloat((1.35 + Math.random() * 0.30).toFixed(2)),
+        parseFloat((1.90 + Math.random() * 0.35).toFixed(2))
+      ];
+      this.galileoBells.forEach((bell, idx) => {
+        bell.x = Math.min(this.trackLength, randomPositions[idx]);
+      });
+      this.showToast("🎲 Scrambled frets! Try tuning them to make the tempo steady.");
+    }
+
+    this.updateGalileoBellUI();
+    this.resetSimulation();
+    this.renderAll();
+  }
+
+  updateGalileoChimeTable() {
+    if (!this.tbodyGalileoChimes) return;
+    if (this.galileoChimes.length === 0) {
+      this.tbodyGalileoChimes.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--subtle); padding: 0.75rem;">
+            Start motion to record bell strike times and measure tempo intervals.
+          </td>
+        </tr>
+      `;
+      if (this.verdictGalileoTempo) {
+        this.verdictGalileoTempo.className = 'cadence-badge';
+        this.verdictGalileoTempo.textContent = '⏳ Release bronze sphere to hear the chime cadence & measure intervals';
+      }
+      return;
+    }
+
+    let rows = '';
+    const dts = [];
+    for (let i = 0; i < this.galileoChimes.length; i++) {
+      const c = this.galileoChimes[i];
+      if (i > 0) dts.push(c.dt);
+      rows += `
+        <tr>
+          <td style="font-weight: 700; color: #5c3a1e;">#${c.id}</td>
+          <td><span class="fret-badge">${c.note}</span></td>
+          <td style="font-family: monospace; font-weight: 600;">${c.x.toFixed(2)} m</td>
+          <td style="font-family: monospace;">${c.dx.toFixed(2)} m</td>
+          <td style="font-family: monospace; font-weight: 700; color: #0f7e9b;">${c.t.toFixed(2)} s</td>
+          <td style="font-family: monospace; font-weight: 700; color: #d67b19;">${i === 0 ? '— (first)' : `${c.dt.toFixed(2)} s`}</td>
+          <td><span style="font-weight: 600; color: #6d4b29;">${c.ratio}</span></td>
+        </tr>
+      `;
+    }
+    this.tbodyGalileoChimes.innerHTML = rows;
+
+    // Assess tempo rhythm
+    if (this.verdictGalileoTempo && dts.length >= 2) {
+      const avg = dts.reduce((a, b) => a + b, 0) / dts.length;
+      const maxDiff = Math.max(...dts.map(d => Math.abs(d - avg)));
+      const isDecreasing = dts.every((d, idx) => idx === 0 || d < dts[idx - 1] - 0.04);
+
+      if (maxDiff <= 0.08) {
+        this.verdictGalileoTempo.className = 'cadence-badge steady';
+        this.verdictGalileoTempo.innerHTML = `🎶 <strong>Steady Musical Tempo!</strong> Equal intervals (Δ<i>t</i> ≈ ${avg.toFixed(2)}s). Confirms <i>x</i> ∝ <i>t</i>² with distance ratios 1 : 4 : 9 : 16 : 25!`;
+      } else if (isDecreasing) {
+        this.verdictGalileoTempo.className = 'cadence-badge accelerating';
+        this.verdictGalileoTempo.innerHTML = `⚡ <strong>Accelerating Gallop!</strong> Intervals shrink (${dts.map(d => `${d.toFixed(2)}s`).join(' → ')}). Sphere speeds up over equal distances!`;
+      } else {
+        this.verdictGalileoTempo.className = 'cadence-badge';
+        this.verdictGalileoTempo.innerHTML = `🎼 Irregular Tempo (intervals: ${dts.map(d => `${d.toFixed(2)}s`).join(', ')}). Adjust frets to match ratios 1, 4, 9, 16, 25!`;
+      }
+    }
+  }
+
+  transferGalileoData() {
+    if (this.galileoChimes.length === 0) {
+      this.showToast('⚠️ No bell chime points recorded yet. Press Start Motion first!');
+      return;
+    }
+    this.clearData();
+    this.addRecordPoint(0.00, this.x0, 0.00, 'galileo');
+    for (const c of this.galileoChimes) {
+      const v = velocityAtTime(c.t, this.v0, this.currentA);
+      this.addRecordPoint(c.t, c.x, v, 'galileo');
+    }
+    this.recomputeModels();
+    this.updateTablesUI();
+    this.renderGraphs();
+    this.showToast('📥 Transferred chime points to the main data table and graphs!');
+  }
+
   autoDropCurrentMarks() {
     this.clearData();
     const a = this.currentA;
@@ -747,7 +1114,11 @@ export class DownhillMotionApp {
     this.passedGates.clear();
     for (const bell of this.galileoBells) {
       bell.rung = false;
+      bell.chimeTime = null;
     }
+    this.galileoChimes = [];
+    this.bellRipples = [];
+    this.updateGalileoChimeTable();
     this.recomputeModels();
     this.updateTablesUI();
     this.renderGraphs();
@@ -1052,35 +1423,118 @@ export class DownhillMotionApp {
 
     // Render Galileo Brass Bells & Gut Frets (in Galileo mode)
     if (isGalileo) {
+      const now = performance.now();
+      this.bellRipples = this.bellRipples.filter(r => now - r.startTime < r.duration);
+
       for (const bell of this.galileoBells) {
         const bellPx = (bell.x / this.trackLength) * trackPixelLength;
+        const isHovered = (this.hoveredBell === bell || this.draggingBell === bell);
 
-        // Gut fret wire across track
-        ctx.strokeStyle = '#6e421a';
-        ctx.lineWidth = 2;
+        // Gut fret wire across track in deep gut brown
+        ctx.strokeStyle = '#5c3a1e';
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(bellPx, -2);
         ctx.lineTo(bellPx, trackThick);
         ctx.stroke();
 
-        // Bell bracket & brass chime bell
-        ctx.strokeStyle = '#a0784d';
-        ctx.lineWidth = 1.5;
+        // Small gut knots at track top and bottom edges
+        ctx.fillStyle = '#422812';
+        ctx.beginPath();
+        ctx.arc(bellPx, -2, 2, 0, Math.PI * 2);
+        ctx.arc(bellPx, trackThick, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Antique arched brass bracket rising from track
+        ctx.strokeStyle = isHovered ? '#d67b19' : '#8a6125';
+        ctx.lineWidth = isHovered ? 2.5 : 2.0;
         ctx.beginPath();
         ctx.moveTo(bellPx, 0);
-        ctx.lineTo(bellPx, -24);
+        ctx.lineTo(bellPx, -34);
         ctx.stroke();
 
-        // Little chime bell
-        ctx.fillStyle = bell.rung ? '#d67b19' : '#c99642';
-        ctx.strokeStyle = '#82591e';
-        drawRoundedRect(ctx, bellPx - 5, -32, 10, 8, 2);
+        // Bell bracket cross-hanger arch
+        ctx.beginPath();
+        ctx.moveTo(bellPx - 6, -34);
+        ctx.lineTo(bellPx + 6, -34);
+        ctx.stroke();
+
+        // Hover / Drag Glow Aura
+        if (isHovered) {
+          ctx.fillStyle = 'rgba(214, 123, 25, 0.22)';
+          ctx.beginPath();
+          ctx.arc(bellPx, -25, 14, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Guide line down to track/ruler
+          ctx.strokeStyle = '#d67b19';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(bellPx, trackThick);
+          ctx.lineTo(bellPx, trackThick + 22);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Active sound ripples if recently rung
+        for (const ripple of this.bellRipples) {
+          if (ripple.x === bell.x) {
+            const progress = (now - ripple.startTime) / ripple.duration;
+            const ripRadius = 8 + progress * 24;
+            ctx.strokeStyle = `rgba(214, 123, 25, ${1 - progress})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(bellPx, -24, ripRadius, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+
+        // Brass Bell Body (Flared Renaissance bell geometry)
+        ctx.fillStyle = bell.rung ? '#d67b19' : (isHovered ? '#e29c42' : '#c99642');
+        ctx.strokeStyle = '#6e4918';
+        ctx.lineWidth = 1.2;
+
+        ctx.beginPath();
+        // Top crown of bell
+        ctx.moveTo(bellPx - 3, -32);
+        ctx.lineTo(bellPx + 3, -32);
+        // Flared sides down to sound lip
+        ctx.quadraticCurveTo(bellPx + 4, -26, bellPx + 7, -20);
+        ctx.lineTo(bellPx - 7, -20);
+        ctx.quadraticCurveTo(bellPx - 4, -26, bellPx - 3, -32);
+        ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.font = 'bold 8px "Inter", sans-serif';
-        ctx.fillStyle = '#5c3a1e';
-        ctx.fillText(`Fret ${bell.id}`, bellPx, -36);
+        // Bell Clapper bead hanging beneath lip
+        ctx.fillStyle = '#4a2f0e';
+        ctx.beginPath();
+        ctx.arc(bellPx, -18, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bell Handle Loop / Drag Ring at top of bracket
+        ctx.strokeStyle = isHovered ? '#d67b19' : '#a0784d';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(bellPx, -37, 3.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Bell Label Badge
+        if (isHovered) {
+          const badgeText = `🔔 Fret ${bell.id}: ${bell.x.toFixed(2)}m (drag ↔)`;
+          ctx.font = 'bold 9px "Inter", sans-serif';
+          const txtW = ctx.measureText(badgeText).width;
+          ctx.fillStyle = '#d67b19';
+          drawRoundedRect(ctx, bellPx - txtW / 2 - 4, -54, txtW + 8, 14, 3);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(badgeText, bellPx, -44);
+        } else {
+          ctx.font = 'bold 8.5px "Inter", sans-serif';
+          ctx.fillStyle = '#5c3a1e';
+          ctx.fillText(`Fret ${bell.id} (${bell.x.toFixed(2)}m)`, bellPx, -42);
+        }
       }
     }
 

@@ -77,6 +77,129 @@
       </div>
     </div>
 
+    <!-- Galileo Galilei Musical Bell & Frets Tuning Studio (Visible in Galileo Mode) -->
+    <div class="galileo-banner" id="panelGalileoBells" style="display: none;">
+      <div class="galileo-banner-header">
+        <div class="galileo-banner-info">
+          <h3>🔔 Galileo's Frets &amp; Musical Tempo Studio (1638)</h3>
+          <p>
+            Galileo proved <span class="math-expr"><i>x</i> ∝ <i>t</i>²</span> by tuning fret positions until the rolling bronze sphere struck the bells with <strong>equal musical beats</strong> (an isochronous rhythm). Drag the bells directly along the track above or use the fret sliders below to test!
+          </p>
+        </div>
+        <div class="galileo-banner-actions">
+          <button class="btn btn-sm btn-outline-galileo" id="btnPresetGalileoOdd" title="Set distances as 1, 4, 9, 16, 25 to achieve equal-time beats">
+            🎵 Galileo's Rule (1 : 4 : 9 : 16 : 25)
+          </button>
+          <button class="btn btn-sm btn-outline-galileo" id="btnPresetGalileoEqualDist" title="Space bells evenly to hear the tempo accelerate">
+            📏 Equal Distance Spacing
+          </button>
+          <button class="btn btn-sm btn-outline-galileo" id="btnPresetGalileoScramble" title="Randomize bell positions to experiment by ear">
+            🎲 Scramble Frets
+          </button>
+        </div>
+      </div>
+
+      <!-- 5 Bell / Fret Interactive Sliders -->
+      <div class="galileo-frets-grid">
+        <div class="fret-card" id="cardFret1">
+          <div class="fret-card-top">
+            <span class="fret-badge">Fret 1 · Note C5</span>
+            <button class="btn-ring-preview" data-fret="1" title="Test Bell 1 chime">🔔 Ring</button>
+          </div>
+          <div class="fret-slider-row">
+            <input type="range" class="slider-fret" id="sliderFret1" min="0.18" max="2.40" step="0.01" value="0.25">
+            <span class="fret-val" id="valFret1">0.25 m</span>
+          </div>
+          <div class="fret-dist" id="distFret1">Δx = 0.09 m (1×)</div>
+        </div>
+
+        <div class="fret-card" id="cardFret2">
+          <div class="fret-card-top">
+            <span class="fret-badge">Fret 2 · Note D5</span>
+            <button class="btn-ring-preview" data-fret="2" title="Test Bell 2 chime">🔔 Ring</button>
+          </div>
+          <div class="fret-slider-row">
+            <input type="range" class="slider-fret" id="sliderFret2" min="0.18" max="2.40" step="0.01" value="0.52">
+            <span class="fret-val" id="valFret2">0.52 m</span>
+          </div>
+          <div class="fret-dist" id="distFret2">Δx = 0.36 m (4×)</div>
+        </div>
+
+        <div class="fret-card" id="cardFret3">
+          <div class="fret-card-top">
+            <span class="fret-badge">Fret 3 · Note E5</span>
+            <button class="btn-ring-preview" data-fret="3" title="Test Bell 3 chime">🔔 Ring</button>
+          </div>
+          <div class="fret-slider-row">
+            <input type="range" class="slider-fret" id="sliderFret3" min="0.18" max="2.40" step="0.01" value="0.97">
+            <span class="fret-val" id="valFret3">0.97 m</span>
+          </div>
+          <div class="fret-dist" id="distFret3">Δx = 0.81 m (9×)</div>
+        </div>
+
+        <div class="fret-card" id="cardFret4">
+          <div class="fret-card-top">
+            <span class="fret-badge">Fret 4 · Note G5</span>
+            <button class="btn-ring-preview" data-fret="4" title="Test Bell 4 chime">🔔 Ring</button>
+          </div>
+          <div class="fret-slider-row">
+            <input type="range" class="slider-fret" id="sliderFret4" min="0.18" max="2.40" step="0.01" value="1.60">
+            <span class="fret-val" id="valFret4">1.60 m</span>
+          </div>
+          <div class="fret-dist" id="distFret4">Δx = 1.44 m (16×)</div>
+        </div>
+
+        <div class="fret-card" id="cardFret5">
+          <div class="fret-card-top">
+            <span class="fret-badge">Fret 5 · Note A5</span>
+            <button class="btn-ring-preview" data-fret="5" title="Test Bell 5 chime">🔔 Ring</button>
+          </div>
+          <div class="fret-slider-row">
+            <input type="range" class="slider-fret" id="sliderFret5" min="0.18" max="2.40" step="0.01" value="2.40">
+            <span class="fret-val" id="valFret5">2.40 m</span>
+          </div>
+          <div class="fret-dist" id="distFret5">Δx = 2.24 m (25×)</div>
+        </div>
+      </div>
+
+      <!-- Live Chime Cadence Rhythm Tracker -->
+      <div class="galileo-cadence-box">
+        <div class="cadence-header-bar">
+          <div class="cadence-badge" id="verdictGalileoTempo">
+            ⏳ Release bronze sphere to hear the chime cadence &amp; measure intervals
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button class="btn btn-sm btn-ghost" id="btnTransferGalileoData" title="Transfer bell strike times to the main data collection table">
+              📥 Transfer Chimes to Main Table
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrapper" style="max-height: 180px; margin-bottom: 0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 55px;">Fret</th>
+                <th>Bell Note</th>
+                <th>Position <i>x</i> (m)</th>
+                <th>Distance Δ<i>x</i> (m)</th>
+                <th>Chime Time <i>t</i> (s)</th>
+                <th>Interval Δ<i>t</i> (s)</th>
+                <th>Tempo / Odd Spacing</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyGalileoChimes">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--subtle); padding: 0.75rem;">
+                  Start motion to record bell strike times and measure tempo intervals.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Apparatus Section -->
     <section class="canvas-card">
       <div class="toolbar">

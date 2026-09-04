@@ -836,6 +836,207 @@ input[type="range"] {
   background: #ffffff;
 }
 
+/* Galileo Renaissance Musical Bell & Frets Tuning Studio */
+.galileo-banner {
+  background: #fbf9f4;
+  border: 1px solid #dcd1c2;
+  border-left: 6px solid #d67b19;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 14px rgba(214, 123, 25, 0.08);
+}
+
+.galileo-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+  margin-bottom: 1.15rem;
+  flex-wrap: wrap;
+}
+
+.galileo-banner-info {
+  flex: 1;
+  min-width: 280px;
+}
+
+.galileo-banner-info h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4a3424;
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.galileo-banner-info p {
+  font-size: 0.85rem;
+  color: #5c4331;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.galileo-banner-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-outline-galileo {
+  background: #ffffff;
+  border: 1.5px solid #d67b19;
+  color: #b86510;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-outline-galileo:hover {
+  background: #d67b19;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(214, 123, 25, 0.25);
+}
+
+.galileo-frets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.fret-card {
+  background: #ffffff;
+  border: 1px solid #e5dcce;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.fret-card:hover {
+  border-color: #d67b19;
+  box-shadow: 0 2px 8px rgba(214, 123, 25, 0.15);
+}
+
+.fret-card.active-rung {
+  border-color: #d67b19;
+  background: #fffbf5;
+  transform: scale(1.02);
+  box-shadow: 0 0 0 2px rgba(214, 123, 25, 0.3);
+}
+
+.fret-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fret-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #5c3a1e;
+  background: #f4eee2;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.btn-ring-preview {
+  background: transparent;
+  border: 1px solid #dfd3c0;
+  border-radius: 4px;
+  color: #8c5d2e;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-ring-preview:hover {
+  background: #d67b19;
+  border-color: #d67b19;
+  color: #ffffff;
+}
+
+.fret-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slider-fret {
+  flex: 1;
+  accent-color: #d67b19;
+  cursor: pointer;
+}
+
+.fret-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f7e9b;
+  min-width: 48px;
+  text-align: right;
+  font-family: monospace;
+}
+
+.fret-dist {
+  font-size: 0.75rem;
+  color: #8c6d53;
+  font-style: italic;
+}
+
+.galileo-cadence-box {
+  background: #ffffff;
+  border: 1px solid #e5dcce;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.cadence-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cadence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #f6f2ea;
+  color: #5c3a1e;
+  border: 1px solid #dfd5c4;
+  transition: all 0.2s ease;
+}
+
+.cadence-badge.steady {
+  background: rgba(15, 126, 155, 0.12);
+  color: #0f7e9b;
+  border-color: #0f7e9b;
+}
+
+.cadence-badge.accelerating {
+  background: rgba(214, 123, 25, 0.12);
+  color: #b86510;
+  border-color: #d67b19;
+}
+
 /* Galileo Renaissance Manuscript & Historical Dossier */
 .galileo-dossier {
   background: #fdfbf7;
