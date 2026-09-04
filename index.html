@@ -21,7 +21,7 @@
           <span class="lab-badge">📐 Physics Lab Activity</span>
           <h1>Lab: Downhill Motion</h1>
           <p class="hero-subtitle">
-            Determine the mathematical relationship between position and time for a cart rolling down an incline with constant acceleration, then use the graph's tangent slopes to construct an instantaneous velocity-time model.
+            Determine the mathematical relationship between position and time for an object rolling down an incline with constant acceleration, and use the graph's tangent slopes to construct an instantaneous velocity-time model.
           </p>
         </div>
         <div class="hero-meta-badges">
@@ -46,6 +46,9 @@
       <button class="lab-tab" id="tabStopwatch" title="Manual timing: press split button or Spacebar to capture time and position">
         <span class="tab-icon">⏱</span> 3. Manual Stopwatch Lab
       </button>
+      <button class="lab-tab" id="tabGalileo" title="Recreate Galileo Galilei's original 1638 experiment with rolling bronze sphere, musical bells, and water clock">
+        <span class="tab-icon">📜</span> 4. Galileo's Incline (Renaissance 1638)
+      </button>
     </nav>
 
     <!-- Classroom Metronome Widget Bar -->
@@ -55,7 +58,7 @@
           <div class="metronome-led" id="metronomeLed"></div>
         </div>
         <div class="metronome-info">
-          <h3>🎵 Classroom Metronome (1 Beat Every Second · 60 BPM)</h3>
+          <h3>🎵 Cadence Timing (1 Beat Every Second · 60 BPM)</h3>
           <p>
             Listen for the 1-second cadence. Release cart on a beat, then press <strong>Mark Cart Position</strong> (or hit <strong>Spacebar</strong> / click the track) on each beat!
           </p>
@@ -63,9 +66,9 @@
       </div>
 
       <div class="metronome-actions">
-        <button class="btn btn-ghost btn-sm" id="btnMuteSound" title="Toggle audio metronome ticks">🔊 Audio ON</button>
+        <button class="btn btn-ghost btn-sm" id="btnMuteSound" title="Toggle audio metronome ticks / chime bells">🔊 Audio ON</button>
         <span class="beat-pill" id="valCurrentBeat">Beat #0 (Ready / Release)</span>
-        <button class="btn btn-mark-beat" id="btnMarkBeat" title="Mark where the cart is at this 1-second beat">
+        <button class="btn btn-mark-beat" id="btnMarkBeat" title="Mark where the front of the cart is at this 1-second beat">
           🖊 Mark Cart Position (Spacebar)
         </button>
         <button class="btn btn-sm btn-ghost" id="btnAutoDropMarks" title="Pre-mark exact 1-second positions">
@@ -95,7 +98,7 @@
           </label>
           <label class="toggle-label" title="Include slight rolling friction">
             <input type="checkbox" id="chkFriction" checked>
-            <span>Cart Friction</span>
+            <span>Rolling Friction</span>
           </label>
         </div>
       </div>
@@ -107,8 +110,8 @@
           <span class="metric-val" id="metricTime">0.00 s</span>
         </div>
         <div class="metric-pill">
-          <span class="metric-label">Position (<i>x</i>)</span>
-          <span class="metric-val" id="metricPos">0.00 m</span>
+          <span class="metric-label">Front Bumper Position (<i>x</i>)</span>
+          <span class="metric-val" id="metricPos">0.16 m</span>
         </div>
         <div class="metric-pill amber">
           <span class="metric-label">Instantaneous Velocity (<i>v</i>)</span>
@@ -124,9 +127,9 @@
         </div>
       </div>
 
-      <!-- Interactive Incline Canvas -->
+      <!-- Interactive Incline Canvas (Height 310px with dynamic top headroom) -->
       <div class="canvas-viewport">
-        <canvas id="simCanvas" width="1200" height="250" title="Click directly on the track to mark cart position"></canvas>
+        <canvas id="simCanvas" width="1200" height="310" title="Click directly on the track to mark front bumper position"></canvas>
       </div>
 
       <!-- Incline Adjustment Controls -->
@@ -137,7 +140,61 @@
             <span class="val" id="valAngle">4.0°</span>
           </label>
           <input type="range" id="sliderAngle" min="2.0" max="15.0" step="0.5" value="4.0">
-          <small style="color: var(--muted); font-size: 0.75rem;">Gentle slopes (3°–5°) allow easy tracking across 3–4 one-second metronome beats.</small>
+          <small style="color: var(--muted); font-size: 0.75rem;">Adjust steepness from 2.0° to 15.0°. Notice that the front bumper starts at <span class="math-expr"><i>x</i>₀ = 0.16 m</span> (the cart length)!</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- Galileo Galilei Renaissance 1638 Dossier (Visible in Galileo Mode) -->
+    <section class="galileo-dossier" id="panelGalileoHistory" style="display: none;">
+      <div class="folio-header">
+        <h2>📜 Galileo Galilei: Diluting Gravity on the Inclined Plane (1638)</h2>
+        <p>How Galileo proved free-fall acceleration without clocks using musical beats, water weighing, and a grooved beam.</p>
+      </div>
+
+      <div class="quote-block">
+        “A piece of wooden moulding, about 12 cubits long, half a cubit wide, and three finger-breadths thick, was taken; on its edge was cut a channel a little more than one finger in breadth... having made this groove very straight, smooth, and polished, and lined it with parchment, we rolled along it a hard, smooth, and very round bronze ball... For the measurement of time, we employed a large vessel of water placed in an elevated position; to the bottom of this vessel was soldered a pipe of small diameter giving a thin jet of water, which we collected in a small glass during the time of each descent... the water thus collected was weighed on a very accurate balance; the differences and ratios of these weights gave us the respective times.”
+        <span class="quote-author">— Galileo Galilei, <em>Dialogues Concerning Two New Sciences</em> (Discorsi), Day Three (1638)</span>
+      </div>
+
+      <div style="margin: 1rem 0; font-size: 0.88rem; line-height: 1.6; color: #4a3424;">
+        <strong>The Rule of Odd Numbers (<em>Regola dei numeri dispari</em>):</strong> 
+        Because direct vertical free-fall is too rapid for the human eye to measure, Galileo slowed (“diluted”) gravity by rolling a bronze ball down an incline. In successive equal intervals of time (<span class="math-expr"><i>t</i> = 1, 2, 3, 4</span>), the distances traversed during each interval are in the ratio of the odd numbers:
+        <span class="math-expr">1 : 3 : 5 : 7 : 9</span>. Therefore, the total cumulative distance grows with the squares of the times:
+        <span class="math-expr">1, (1+3)=4, (4+5)=9, (9+7)=16</span>, proving that <span class="math-expr"><i>x</i> ∝ <i>t</i>²</span>!
+      </div>
+
+      <div class="artifact-grid">
+        <div class="artifact-card">
+          <h3>🏛 Museo Galileo Artifact</h3>
+          <p>Examine high-resolution archival documentation of the surviving 17th/18th-century wooden inclined plane equipped with musical bells at Museo Galileo in Florence, Italy.</p>
+          <a href="https://catalogue.museogalileo.it/object/InclinedPlane.html" target="_blank" rel="noopener" class="artifact-link">
+            🔍 View Museo Galileo Catalogue (inv. 1045) →
+          </a>
+        </div>
+
+        <div class="artifact-card">
+          <h3>✍️ Galileo's Manuscript (Folio 116v)</h3>
+          <p>View Galileo's actual handwritten ink calculations preserved at the National Library of Florence, recording experimental distances and time ratios on an incline.</p>
+          <a href="https://brunelleschi.imss.fi.it/galileopalazzofabbri/inglese/ilaboratorio/i_piano_inclinato.html" target="_blank" rel="noopener" class="artifact-link">
+            📜 Inspect Manuscript Folio 116v →
+          </a>
+        </div>
+
+        <div class="artifact-card">
+          <h3>🎬 Historical Demonstration Video</h3>
+          <p>Watch the official Museo Galileo reconstruction demonstrating the rolling sphere, gut fret musical timing, and the water clock in action.</p>
+          <a href="https://www.youtube.com/watch?v=ZfO429Qo6sM" target="_blank" rel="noopener" class="artifact-link">
+            ▶ Watch Museo Galileo Demo (YouTube) →
+          </a>
+        </div>
+
+        <div class="artifact-card">
+          <h3>🎵 The Physics of Galileo's Bells</h3>
+          <p>Explore how Galileo used musical pitch, rhythm, and equal time intervals to discover the law of falling bodies centuries before electronic timers.</p>
+          <a href="https://www.youtube.com/results?search_query=veritasium+galileo+incline" target="_blank" rel="noopener" class="artifact-link">
+            🎥 Veritasium: Galileo &amp; Falling Bodies →
+          </a>
         </div>
       </div>
     </section>
@@ -172,7 +229,7 @@
                 <tr>
                   <th style="width: 45px;">#</th>
                   <th>Time (s)</th>
-                  <th>Position (m)</th>
+                  <th>Front Position (m)</th>
                 </tr>
               </thead>
               <tbody id="tbodyData">
@@ -183,7 +240,7 @@
 
           <!-- Table Action Buttons -->
           <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem;">
-            <button class="btn btn-sm btn-ghost" id="btnSampleData" title="Load sample 1-second metronome points">⚡ Sample Data</button>
+            <button class="btn btn-sm btn-ghost" id="btnSampleData" title="Load sample 1-second points with front bumper position">⚡ Sample Data</button>
             <button class="btn btn-sm btn-ghost" id="btnClearData" title="Clear all recorded points">🗑 Clear</button>
             <button class="btn btn-sm btn-ghost" id="btnCopyData" title="Copy table to clipboard for spreadsheets">📋 Copy TSV</button>
             <button class="btn btn-sm btn-ghost" id="btnExportCSV" title="Download CSV file">📥 CSV</button>
@@ -298,8 +355,8 @@
             <div class="model-card">
               <h3>Defined Physics Symbols</h3>
               <ul style="list-style: none; font-size: 0.85rem; line-height: 1.8; color: var(--ink);">
-                <li>• Let <strong class="math-expr"><i>x</i></strong> be position along the ramp (m)</li>
-                <li>• Let <strong class="math-expr"><i>x</i><sub>0</sub></strong> be initial position (m)</li>
+                <li>• Let <strong class="math-expr"><i>x</i></strong> be front bumper position along the ramp (m)</li>
+                <li>• Let <strong class="math-expr"><i>x</i><sub>0</sub></strong> be initial front bumper position = cart length (0.16 m)</li>
                 <li>• Let <strong class="math-expr"><i>t</i></strong> be clock reading / time elapsed (s)</li>
                 <li>• Let <strong class="math-expr"><i>v</i></strong> be instantaneous velocity (m/s)</li>
                 <li>• Let <strong class="math-expr"><i>v</i><sub>0</sub></strong> be initial velocity (m/s)</li>
@@ -397,7 +454,7 @@
             <span>▾</span>
           </div>
           <div class="question-body">
-            <strong>Slope = Acceleration (<span class="math-expr"><i>a</i></span>).</strong> The slope of a velocity vs. time graph represents the rate at which the cart's velocity changes each second (measured in <span class="math-expr">m/s²</span> or <span class="math-expr">cm/s²</span>). Because the line is straight, the acceleration is constant.
+            <strong>Slope = Acceleration (<span class="math-expr"><i>a</i></span>).</strong> The slope of a velocity vs. time graph represents the rate at which the cart's velocity changes each second (measured in <span class="math-expr">m/s²</span>). Because the line is straight, the acceleration is constant.
           </div>
         </div>
 
@@ -437,7 +494,7 @@
             <span>▾</span>
           </div>
           <div class="question-body">
-            <strong>y-intercept = Initial Position (<span class="math-expr"><i>x</i><sub>0</sub></span>).</strong> The y-intercept <span class="math-expr"><i>C</i></span> represents the location of the cart along the track at the start of timing (<span class="math-expr"><i>t</i> = 0 s</span>).
+            <strong>y-intercept = Initial Position of Front Bumper (<span class="math-expr"><i>x</i><sub>0</sub></span>).</strong> Because we track the front bumper of the cart while the rear is placed against the release bumper at <span class="math-expr">0.00 m</span>, the y-intercept <span class="math-expr"><i>C</i></span> equals the physical length of the cart (<span class="math-expr"><i>x</i><sub>0</sub> = 0.16 m</span>)!
           </div>
         </div>
       </div>

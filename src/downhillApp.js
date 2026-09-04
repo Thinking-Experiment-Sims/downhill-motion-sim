@@ -1,12 +1,14 @@
 /**
- * downhillApp.js - Interactive UI, Canvas Graphics & Metronome Controller
+ * downhillApp.js - Interactive UI, Canvas Graphics, Metronome & Galileo Renaissance Controller
  * 
  * Part of "The Thinking Experiment" (PhysicsKit).
  * Strictly complies with DESIGN_SYSTEM.md:
  * - Palette: Teal (#0f7e9b), Amber (#d67b19), White (#ffffff), Grid (#e9f4fb).
  * - Cross-browser safe canvas rendering: uses arcTo helper (NO ctx.roundRect).
- * - Offline math typography: semantic HTML (NO unrendered LaTeX \text{} tags).
- * - Web Audio API synthesized wooden metronome tick.
+ * - Dynamic geometry prevents cart clipping at all ramp angles (even 15°).
+ * - Front bumper tracking: initial position equals cart length (x0 = 0.16m).
+ * - Galileo Galilei Renaissance 1638 Mode with bronze sphere, chime bells, and water clock.
+ * - Web Audio API synthesized wooden metronome tick & brass chime.
  */
 
 import {
@@ -30,12 +32,12 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.arcTo(x + width, y, x + width, y + height, r);
   ctx.arcTo(x + width, y + height, x, y + height, r);
   ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y, x + width, y, r);
+  ctx.arcTo(x, y + width, y, r);
   ctx.closePath();
 }
 
 /**
- * Clean Web Audio API wooden metronome click synthesizer
+ * Web Audio API synthesizer for wooden metronome ticks and Galileo brass bell chimes
  */
 class MetronomeAudio {
   constructor() {
@@ -72,26 +74,48 @@ class MetronomeAudio {
 
       osc.start(now);
       osc.stop(now + 0.045);
-    } catch (e) {
-      // Audio autoplay policy fallback
-    }
+    } catch (e) {}
+  }
+
+  playBell(pitch = 1100) {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pitch, now);
+
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.40);
+    } catch (e) {}
   }
 }
 
 export class DownhillMotionApp {
   constructor() {
-    // Physical state
-    this.trackLength = 2.40; // meters
-    this.angleDeg = 4.0;     // 4 degrees gentle slope for classroom metronome tracking
-    this.muFriction = 0.003; // low-friction dynamics cart
-    this.x0 = 0.00;          // meters
-    this.v0 = 0.00;          // m/s
+    // Physical dimensions
+    this.trackLength = 2.40;     // meters
+    this.cartLengthMeters = 0.16; // 16 cm cart length
+    this.x0 = this.cartLengthMeters; // Front bumper starts at length of cart (0.16m)!
+    this.v0 = 0.00;              // m/s
+    this.angleDeg = 4.0;         // default angle
+    this.muFriction = 0.003;     // low-friction dynamics cart
 
     // Simulation state
     this.isRunning = false;
     this.simSpeed = 1.0;
     this.currentTime = 0.0;
-    this.currentX = 0.00;
+    this.currentX = this.x0; // Front bumper position
     this.currentV = 0.00;
     this.currentA = 0.00;
     this.lastFrameTime = null;
@@ -104,21 +128,29 @@ export class DownhillMotionApp {
     this.lastTickerTime = 0;
     this.tickerInterval = 0.20;
 
-    // Lab Mode: 'metronome' (Classroom Lab) | 'photogate' | 'stopwatch'
+    // Lab Mode: 'metronome' | 'photogate' | 'stopwatch' | 'galileo'
     this.labMode = 'metronome';
 
-    // Metronome system (Classroom Lab Mode)
+    // Audio & Metronome
     this.audio = new MetronomeAudio();
-    this.metronomeInterval = 1.00; // 1 second per beat (60 BPM)
+    this.metronomeInterval = 1.00; // 1 second
     this.currentBeat = 0;
     this.nextBeatTime = 1.00;
-    this.beatLedTimer = 0;
-    this.markedBeats = new Map(); // beatNum -> { beat, t, x, actualX }
+    this.markedBeats = new Map();
 
-    // Photogates array for Photogate mode
-    this.photogates = [0.20, 0.45, 0.80, 1.25, 1.80, 2.30];
+    // Photogates array for Photogate mode (front bumper triggers)
+    this.photogates = [0.30, 0.60, 1.00, 1.45, 1.95, 2.35];
     this.passedGates = new Set();
     this.gateFlashMap = new Map();
+
+    // Galileo frets / bells (placed at 1, 4, 9, 16 units)
+    this.galileoBells = [
+      { id: 1, x: 0.16, rung: false, freq: 880 },
+      { id: 2, x: 0.16 + 0.14, rung: false, freq: 987 },
+      { id: 3, x: 0.16 + 0.56, rung: false, freq: 1108 },
+      { id: 4, x: 0.16 + 1.26, rung: false, freq: 1318 },
+      { id: 5, x: 0.16 + 2.14, rung: false, freq: 1568 }
+    ];
 
     // Data points & models
     this.recordedPoints = [];
@@ -129,7 +161,7 @@ export class DownhillMotionApp {
     // Tangent Inspector
     this.scrubTime = 0.0;
 
-    // DOM & Initialization
+    // Cache DOM Elements
     this.initDOMElements();
     this.initCanvases();
     this.attachEventListeners();
@@ -145,18 +177,22 @@ export class DownhillMotionApp {
     this.tabMetronome = document.getElementById('tabMetronome');
     this.tabPhotogate = document.getElementById('tabPhotogate');
     this.tabStopwatch = document.getElementById('tabStopwatch');
+    this.tabGalileo = document.getElementById('tabGalileo');
 
-    // Metronome & Stopwatch panels
+    // Panels
     this.panelMetronome = document.getElementById('panelMetronome');
     this.panelStopwatch = document.getElementById('panelStopwatch');
-    this.btnSplit = document.getElementById('btnSplit');
+    this.panelGalileoHistory = document.getElementById('panelGalileoHistory');
+
+    // Metronome controls
     this.metronomeLed = document.getElementById('metronomeLed');
     this.btnMarkBeat = document.getElementById('btnMarkBeat');
     this.btnMuteSound = document.getElementById('btnMuteSound');
     this.valCurrentBeat = document.getElementById('valCurrentBeat');
     this.btnAutoDropMarks = document.getElementById('btnAutoDropMarks');
+    this.btnSplit = document.getElementById('btnSplit');
 
-    // Apparatus buttons
+    // Toolbar buttons
     this.btnPlay = document.getElementById('btnPlay');
     this.btnReset = document.getElementById('btnReset');
     this.btnStep = document.getElementById('btnStep');
@@ -167,7 +203,7 @@ export class DownhillMotionApp {
     this.btnExportCSV = document.getElementById('btnExportCSV');
     this.btnSendToTangentSim = document.getElementById('btnSendToTangentSim');
 
-    // Apparatus sliders & toggles
+    // Sliders & Toggles
     this.sliderAngle = document.getElementById('sliderAngle');
     this.valAngle = document.getElementById('valAngle');
     this.chkFriction = document.getElementById('chkFriction');
@@ -240,6 +276,9 @@ export class DownhillMotionApp {
     if (this.tabStopwatch) {
       this.tabStopwatch.addEventListener('click', () => this.setLabMode('stopwatch'));
     }
+    if (this.tabGalileo) {
+      this.tabGalileo.addEventListener('click', () => this.setLabMode('galileo'));
+    }
 
     // Metronome controls
     this.btnMuteSound.addEventListener('click', () => {
@@ -248,7 +287,11 @@ export class DownhillMotionApp {
       this.btnMuteSound.classList.toggle('btn-accent', this.audio.enabled);
       this.btnMuteSound.classList.toggle('btn-ghost', !this.audio.enabled);
       if (this.audio.enabled) {
-        this.audio.playTick(true);
+        if (this.labMode === 'galileo') {
+          this.audio.playBell(1100);
+        } else {
+          this.audio.playTick(true);
+        }
       }
     });
 
@@ -262,12 +305,11 @@ export class DownhillMotionApp {
       this.btnAutoDropMarks.addEventListener('click', () => this.autoDropCurrentMarks());
     }
 
-    // Spacebar listener: triggers mark in metronome or split in stopwatch
+    // Spacebar listener: triggers mark or split
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
-        // Prevent default space scrolling
         e.preventDefault();
-        if (this.labMode === 'metronome') {
+        if (this.labMode === 'metronome' || this.labMode === 'galileo') {
           if (!this.isRunning && this.currentTime === 0) {
             this.startSimulation();
           } else {
@@ -281,7 +323,7 @@ export class DownhillMotionApp {
 
     // Incline canvas click allows student to click directly on track to mark
     this.canvasApp.addEventListener('click', (e) => {
-      if (this.labMode === 'metronome') {
+      if (this.labMode === 'metronome' || this.labMode === 'galileo') {
         const rect = this.canvasApp.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         this.handleTrackClick(clickX);
@@ -360,17 +402,23 @@ export class DownhillMotionApp {
     if (this.tabStopwatch) {
       this.tabStopwatch.classList.toggle('active', mode === 'stopwatch');
     }
+    if (this.tabGalileo) {
+      this.tabGalileo.classList.toggle('active', mode === 'galileo');
+    }
 
     // Show/hide mode panels
     if (this.panelMetronome) {
-      this.panelMetronome.style.display = mode === 'metronome' ? 'flex' : 'none';
+      this.panelMetronome.style.display = (mode === 'metronome' || mode === 'galileo') ? 'flex' : 'none';
     }
     if (this.panelStopwatch) {
       this.panelStopwatch.style.display = mode === 'stopwatch' ? 'block' : 'none';
     }
+    if (this.panelGalileoHistory) {
+      this.panelGalileoHistory.style.display = mode === 'galileo' ? 'block' : 'none';
+    }
 
     // Set appropriate incline angle for mode
-    if (mode === 'metronome') {
+    if (mode === 'metronome' || mode === 'galileo') {
       this.angleDeg = 4.0;
       this.sliderAngle.value = 4.0;
       this.valAngle.textContent = '4.0°';
@@ -419,12 +467,16 @@ export class DownhillMotionApp {
       this.clearData();
     }
 
-    // In Metronome mode, auto-log release point t = 0.00s, x = 0.00m if starting
-    if (this.currentTime === 0.0 && this.labMode === 'metronome') {
-      this.audio.playTick(true);
+    // Auto-log release point t = 0.00s at front bumper position x0 = 0.16m
+    if (this.currentTime === 0.0 && (this.labMode === 'metronome' || this.labMode === 'galileo')) {
+      if (this.labMode === 'galileo') {
+        this.audio.playBell(880);
+      } else {
+        this.audio.playTick(true);
+      }
       this.flashMetronomeLed();
-      this.markedBeats.set(0, { beat: 0, t: 0.00, x: 0.00, actualX: 0.00 });
-      this.addRecordPoint(0.00, 0.00, 0.00, 'metronome');
+      this.markedBeats.set(0, { beat: 0, t: 0.00, x: this.x0, actualX: this.x0 });
+      this.addRecordPoint(0.00, this.x0, 0.00, this.labMode);
     }
 
     this.isRunning = true;
@@ -449,7 +501,7 @@ export class DownhillMotionApp {
   resetSimulation() {
     this.pauseSimulation();
     this.currentTime = 0.0;
-    this.currentX = this.x0;
+    this.currentX = this.x0; // Front bumper starts at x0 (0.16m)!
     this.currentV = this.v0;
     this.currentBeat = 0;
     this.nextBeatTime = this.metronomeInterval;
@@ -457,6 +509,11 @@ export class DownhillMotionApp {
     this.lastTickerTime = 0.0;
     this.passedGates.clear();
     this.gateFlashMap.clear();
+
+    // Reset Galileo bells
+    for (const bell of this.galileoBells) {
+      bell.rung = false;
+    }
 
     if (this.valCurrentBeat) {
       this.valCurrentBeat.textContent = 'Beat #0 (Ready / Release)';
@@ -504,15 +561,29 @@ export class DownhillMotionApp {
     this.currentV = velocityAtTime(this.currentTime, this.v0, this.currentA);
 
     // Metronome 1-second beat tracking
-    if (this.labMode === 'metronome') {
+    if (this.labMode === 'metronome' || this.labMode === 'galileo') {
       if (this.currentTime >= this.nextBeatTime && this.currentX < this.trackLength) {
         this.currentBeat++;
         this.nextBeatTime += this.metronomeInterval;
-        this.audio.playTick(this.currentBeat === 1);
+        if (this.labMode === 'galileo') {
+          this.audio.playBell(1000 + this.currentBeat * 100);
+        } else {
+          this.audio.playTick(this.currentBeat === 1);
+        }
         this.flashMetronomeLed();
 
         if (this.valCurrentBeat) {
           this.valCurrentBeat.textContent = `Beat #${this.currentBeat} (${(this.currentBeat * this.metronomeInterval).toFixed(1)}s)`;
+        }
+      }
+    }
+
+    // Galileo bells checking: chime when bronze ball rolls past fret
+    if (this.labMode === 'galileo') {
+      for (const bell of this.galileoBells) {
+        if (!bell.rung && this.currentX >= bell.x) {
+          bell.rung = true;
+          this.audio.playBell(bell.freq);
         }
       }
     }
@@ -537,23 +608,18 @@ export class DownhillMotionApp {
     }, 180);
   }
 
-  // Classroom Metronome: Student marks cart position on beat
   recordMetronomeMark() {
     if (!this.isRunning && this.currentTime === 0) {
       this.startSimulation();
       return;
     }
 
-    // Target beat corresponds to current nearest beat integer
     const targetBeat = Math.max(1, Math.round(this.currentTime / this.metronomeInterval));
     const beatTime = targetBeat * this.metronomeInterval;
 
-    // Actual cart position at that beat
     const actualX = positionAtTime(beatTime, this.x0, this.v0, this.currentA);
-
-    // Student marked position on track includes slight manual reaction offset (±2 - 4 cm)
-    const reactionLatency = (Math.random() - 0.5) * 0.14; // seconds of reaction offset
-    const studentMarkedX = Math.max(0, Math.min(this.trackLength, positionAtTime(beatTime + reactionLatency, this.x0, this.v0, this.currentA)));
+    const reactionLatency = (Math.random() - 0.5) * 0.12;
+    const studentMarkedX = Math.max(this.x0, Math.min(this.trackLength, positionAtTime(beatTime + reactionLatency, this.x0, this.v0, this.currentA)));
 
     this.markedBeats.set(targetBeat, {
       beat: targetBeat,
@@ -563,7 +629,7 @@ export class DownhillMotionApp {
     });
 
     const vInst = velocityAtTime(beatTime, this.v0, this.currentA);
-    this.addRecordPoint(beatTime, studentMarkedX, vInst, 'metronome');
+    this.addRecordPoint(beatTime, studentMarkedX, vInst, this.labMode);
 
     this.showToast(`🖊 Marked Beat #${targetBeat} (${beatTime.toFixed(1)}s) at ${studentMarkedX.toFixed(2)} m`);
   }
@@ -571,7 +637,15 @@ export class DownhillMotionApp {
   handleTrackClick(pixelX) {
     const padX = 60;
     const w = this.canvasApp.clientWidth;
-    const trackPixelLength = w - padX * 2;
+    const h = this.canvasApp.clientHeight;
+    const benchY = h - 35;
+    const topMargin = 72;
+    const maxRise = benchY - topMargin;
+    const angleRad = (this.angleDeg * Math.PI) / 180;
+    const sinAngle = Math.sin(angleRad);
+    const availW = w - padX * 2;
+    const trackPixelLength = Math.min(availW, maxRise / sinAngle);
+
     const fraction = (pixelX - padX) / trackPixelLength;
     if (fraction >= 0 && fraction <= 1) {
       const clickedX = fraction * this.trackLength;
@@ -591,26 +665,25 @@ export class DownhillMotionApp {
       actualX: parseFloat(this.currentX.toFixed(3))
     });
 
-    this.addRecordPoint(beatTime, clickedX, vInst, 'metronome');
+    this.addRecordPoint(beatTime, clickedX, vInst, this.labMode);
     this.showToast(`🖊 Marked on track: Beat #${targetBeat} at ${clickedX.toFixed(2)} m`);
   }
 
   autoDropCurrentMarks() {
     this.clearData();
-    // Pre-calculate exact beat marks at 0s, 1s, 2s, 3s, 4s...
     const a = this.currentA;
-    const totalBeats = Math.floor(Math.sqrt((2 * this.trackLength) / a));
+    const totalBeats = Math.floor(Math.sqrt((2 * (this.trackLength - this.x0)) / a));
 
     for (let b = 0; b <= totalBeats; b++) {
       const t = b * this.metronomeInterval;
-      const x = positionAtTime(t, 0, 0, a);
+      const x = positionAtTime(t, this.x0, 0, a);
       if (x <= this.trackLength) {
         const v = velocityAtTime(t, 0, a);
         this.markedBeats.set(b, { beat: b, t, x, actualX: x });
-        this.addRecordPoint(t, x, v, 'metronome');
+        this.addRecordPoint(t, x, v, this.labMode);
       }
     }
-    this.showToast('✅ Exact 1-second metronome marks loaded');
+    this.showToast('✅ Exact 1-second marks loaded (front of cart)');
   }
 
   checkPhotogates() {
@@ -642,7 +715,6 @@ export class DownhillMotionApp {
   }
 
   addRecordPoint(t, x, vInstant, method) {
-    // Replace if same beat/timestamp exists
     const existingIdx = this.recordedPoints.findIndex(p => Math.abs(p.t - t) < 0.05);
     if (existingIdx !== -1) {
       this.recordedPoints[existingIdx] = {
@@ -673,6 +745,9 @@ export class DownhillMotionApp {
     this.recordedPoints = [];
     this.markedBeats.clear();
     this.passedGates.clear();
+    for (const bell of this.galileoBells) {
+      bell.rung = false;
+    }
     this.recomputeModels();
     this.updateTablesUI();
     this.renderGraphs();
@@ -685,15 +760,15 @@ export class DownhillMotionApp {
     const times = [0.0, 1.0, 2.0, 3.0, 4.0];
 
     times.forEach((t, idx) => {
-      const x = positionAtTime(t, 0, 0, a);
+      const x = positionAtTime(t, this.x0, 0, a);
       if (x <= this.trackLength) {
         const v = velocityAtTime(t, 0, a);
         this.markedBeats.set(idx, { beat: idx, t, x, actualX: x });
-        this.addRecordPoint(t, x, v, 'metronome');
+        this.addRecordPoint(t, x, v, this.labMode);
       }
     });
 
-    this.showToast('✅ Sample 1-Second Metronome Data Loaded');
+    this.showToast('✅ Sample 1-Second Metronome Data Loaded (x₀ = 0.16m)');
   }
 
   recomputeModels() {
@@ -751,7 +826,6 @@ export class DownhillMotionApp {
   }
 
   updateTablesUI() {
-    // Data points table (Part 2)
     if (this.recordedPoints.length === 0) {
       this.tbodyData.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--subtle); padding: 1.5rem;">No data collected yet. Start the cart or click 'Sample Data'.</td></tr>`;
     } else {
@@ -764,7 +838,6 @@ export class DownhillMotionApp {
       `).join('');
     }
 
-    // Instantaneous velocity table (Part 4)
     if (this.instantaneousVelocities.length === 0) {
       this.tbodyVel.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--subtle); padding: 1.5rem;">Need at least 3 points to calculate tangent velocities.</td></tr>`;
     } else {
@@ -777,7 +850,6 @@ export class DownhillMotionApp {
       `).join('');
     }
 
-    // Badges with semantic typography
     if (this.quadFit && this.quadFit.valid) {
       const { a, b, c, r2 } = this.quadFit;
       const signB = b >= 0 ? '+' : '-';
@@ -818,7 +890,6 @@ export class DownhillMotionApp {
       const signC = C >= 0 ? '+' : '-';
       const signb = b >= 0 ? '+' : '-';
 
-      // Clean semantic HTML formulas (Zero raw \text{} LaTeX tags)
       this.mathModelEqPos.innerHTML = `
         <span class="math-expr">
           <i>x</i>(<i>t</i>) = (<b>${A.toFixed(3)}</b> m/s²) · <i>t</i>² ${signB} (<b>${Math.abs(B).toFixed(3)}</b> m/s) · <i>t</i> ${signC} (<b>${Math.abs(C).toFixed(3)}</b> m)
@@ -845,7 +916,7 @@ export class DownhillMotionApp {
     }
   }
 
-  // Canvas Rendering Methods
+  // Canvas Rendering
   renderAll() {
     this.renderApparatus();
     this.renderGraphs();
@@ -858,36 +929,48 @@ export class DownhillMotionApp {
 
     ctx.clearRect(0, 0, w, h);
 
-    const benchY = h - 30;
-    ctx.fillStyle = '#f0f6fa';
-    ctx.fillRect(0, benchY, w, 30);
-    ctx.strokeStyle = '#c8dbe3';
+    const isGalileo = this.labMode === 'galileo';
+
+    // Bench / Table Surface
+    const benchY = h - 35;
+    ctx.fillStyle = isGalileo ? '#f3ebde' : '#f0f6fa';
+    ctx.fillRect(0, benchY, w, 35);
+    ctx.strokeStyle = isGalileo ? '#d2c2ad' : '#c8dbe3';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(0, benchY);
     ctx.lineTo(w, benchY);
     ctx.stroke();
 
+    // DYNAMIC GEOMETRY FIX:
+    // Ensure that even at 15° (steepest incline), the top of the ramp NEVER clips!
+    // Top margin of 72px gives full clearance for cart body, wheels, sensor flag, and vectors.
     const padX = 60;
-    const trackPixelLength = w - padX * 2;
+    const topMargin = 72;
+    const maxRise = benchY - topMargin;
     const angleRad = (this.angleDeg * Math.PI) / 180;
+    const sinAngle = Math.sin(angleRad);
+    const cosAngle = Math.cos(angleRad);
+
+    const availW = w - padX * 2;
+    const trackPixelLength = Math.min(availW, maxRise / sinAngle);
 
     const startX = padX;
-    const startY = benchY - Math.sin(angleRad) * trackPixelLength;
-    const endX = padX + Math.cos(angleRad) * trackPixelLength;
+    const startY = benchY - sinAngle * trackPixelLength;
+    const endX = padX + cosAngle * trackPixelLength;
     const endY = benchY;
 
-    // Support Stand
+    // Support Stand / Block
     const blockWidth = 24;
     const blockHeight = benchY - startY;
     if (blockHeight > 0) {
-      ctx.fillStyle = '#d4e5ee';
-      ctx.strokeStyle = '#9ab9c8';
+      ctx.fillStyle = isGalileo ? '#d4b896' : '#d4e5ee';
+      ctx.strokeStyle = isGalileo ? '#8c6239' : '#9ab9c8';
       drawRoundedRect(ctx, startX - blockWidth / 2, startY, blockWidth, blockHeight, 4);
       ctx.fill();
       ctx.stroke();
 
-      ctx.strokeStyle = '#82a5b6';
+      ctx.strokeStyle = isGalileo ? '#a0784d' : '#82a5b6';
       for (let y = startY + 8; y < benchY; y += 12) {
         ctx.beginPath();
         ctx.moveTo(startX - blockWidth / 2 + 4, y);
@@ -901,20 +984,35 @@ export class DownhillMotionApp {
     ctx.translate(startX, startY);
     ctx.rotate(angleRad);
 
-    const trackThick = 12;
-    ctx.fillStyle = '#e2ecf2';
-    ctx.strokeStyle = '#0f7e9b';
-    ctx.lineWidth = 2;
-    drawRoundedRect(ctx, -10, 0, trackPixelLength + 20, trackThick, 3);
-    ctx.fill();
-    ctx.stroke();
+    const trackThick = 14;
+    if (isGalileo) {
+      // Renaissance polished wooden moulding with bronze groove
+      ctx.fillStyle = '#b87b46';
+      ctx.strokeStyle = '#6e421a';
+      ctx.lineWidth = 2;
+      drawRoundedRect(ctx, -10, 0, trackPixelLength + 20, trackThick, 3);
+      ctx.fill();
+      ctx.stroke();
+
+      // Bronze groove channel
+      ctx.fillStyle = '#7a4f22';
+      ctx.fillRect(0, 0, trackPixelLength, 4);
+    } else {
+      // Modern aluminum dynamics track
+      ctx.fillStyle = '#e2ecf2';
+      ctx.strokeStyle = '#0f7e9b';
+      ctx.lineWidth = 2;
+      drawRoundedRect(ctx, -10, 0, trackPixelLength + 20, trackThick, 3);
+      ctx.fill();
+      ctx.stroke();
+    }
 
     // Metric Ruler Markings
-    ctx.fillStyle = '#123140';
+    ctx.fillStyle = isGalileo ? '#5c3a1e' : '#123140';
     ctx.font = '9px "Inter", sans-serif';
     ctx.textAlign = 'center';
     ctx.lineWidth = 1;
-    ctx.strokeStyle = '#7a94a0';
+    ctx.strokeStyle = isGalileo ? '#9b714b' : '#7a94a0';
 
     const numMarks = 12;
     for (let i = 0; i <= numMarks; i++) {
@@ -932,7 +1030,7 @@ export class DownhillMotionApp {
       }
     }
 
-    // Render Photogates if in photogate mode
+    // Render Photogates (in Photogate mode)
     if (this.labMode === 'photogate') {
       for (const gatePos of this.photogates) {
         const gateFrac = gatePos / this.trackLength;
@@ -952,12 +1050,45 @@ export class DownhillMotionApp {
       }
     }
 
-    // Render Classroom Metronome Dry-Erase Position Marks on the track
+    // Render Galileo Brass Bells & Gut Frets (in Galileo mode)
+    if (isGalileo) {
+      for (const bell of this.galileoBells) {
+        const bellPx = (bell.x / this.trackLength) * trackPixelLength;
+
+        // Gut fret wire across track
+        ctx.strokeStyle = '#6e421a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bellPx, -2);
+        ctx.lineTo(bellPx, trackThick);
+        ctx.stroke();
+
+        // Bell bracket & brass chime bell
+        ctx.strokeStyle = '#a0784d';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(bellPx, 0);
+        ctx.lineTo(bellPx, -24);
+        ctx.stroke();
+
+        // Little chime bell
+        ctx.fillStyle = bell.rung ? '#d67b19' : '#c99642';
+        ctx.strokeStyle = '#82591e';
+        drawRoundedRect(ctx, bellPx - 5, -32, 10, 8, 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 8px "Inter", sans-serif';
+        ctx.fillStyle = '#5c3a1e';
+        ctx.fillText(`Fret ${bell.id}`, bellPx, -36);
+      }
+    }
+
+    // Render Metronome Dry-Erase Position Marks on the track
     if (this.labMode === 'metronome') {
       for (const [beatNum, mark] of this.markedBeats) {
         const markPx = (mark.x / this.trackLength) * trackPixelLength;
 
-        // Dry-erase marker vertical strip across the track
         ctx.fillStyle = beatNum === 0 ? '#0f7e9b' : '#d67b19';
         ctx.strokeStyle = beatNum === 0 ? '#095f76' : '#b86510';
         ctx.lineWidth = 2;
@@ -966,8 +1097,7 @@ export class DownhillMotionApp {
         ctx.lineTo(markPx, trackThick);
         ctx.stroke();
 
-        // Flag Pin Badge
-        const flagText = beatNum === 0 ? `Release (0s)` : `#${beatNum}: ${mark.t.toFixed(0)}s (${mark.x.toFixed(2)}m)`;
+        const flagText = beatNum === 0 ? `Front (0s): ${mark.x.toFixed(2)}m` : `#${beatNum}: ${mark.t.toFixed(0)}s (${mark.x.toFixed(2)}m)`;
         ctx.font = 'bold 9px "Inter", sans-serif';
         const txtWidth = ctx.measureText(flagText).width;
 
@@ -979,63 +1109,113 @@ export class DownhillMotionApp {
       }
     }
 
-    // Ticker Marks
-    if (this.showTickerMarks) {
+    // FRONT BUMPER TRACKING:
+    // The front of the cart/sphere is at currentX!
+    // The back is at currentX - cartLengthMeters!
+    const frontPx = (this.currentX / this.trackLength) * trackPixelLength;
+    const cartPixelW = (this.cartLengthMeters / this.trackLength) * trackPixelLength;
+    const backPx = frontPx - cartPixelW;
+
+    if (isGalileo) {
+      // Galileo's polished bronze sphere
+      const sphereR = 9; // radius
+      const sphereCenterPx = frontPx - sphereR;
+
+      // Bronze sphere with rotation
+      const rotAngle = (this.currentX / 0.04) % (Math.PI * 2);
+      ctx.save();
+      ctx.translate(sphereCenterPx, -sphereR);
+      ctx.rotate(rotAngle);
+
+      ctx.fillStyle = '#b87b46';
+      ctx.strokeStyle = '#5a3b1a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, sphereR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Metallic gleam & engraved line
+      ctx.strokeStyle = '#e6bf8b';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-sphereR + 3, 0);
+      ctx.lineTo(sphereR - 3, 0);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Front Indicator Pointer
+      ctx.fillStyle = '#d67b19';
+      ctx.beginPath();
+      ctx.moveTo(frontPx, -sphereR * 2 - 10);
+      ctx.lineTo(frontPx - 4, -sphereR * 2 - 16);
+      ctx.lineTo(frontPx + 4, -sphereR * 2 - 16);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 9px "Inter", sans-serif';
+      ctx.fillText(`Front: ${this.currentX.toFixed(2)}m`, frontPx, -sphereR * 2 - 20);
+    } else {
+      // Modern Dynamics Cart
+      const cartH = 18;
+      const wheelR = 5;
+
+      const wheelAngle = (this.currentX / 0.05) % (Math.PI * 2);
+      ctx.fillStyle = '#123140';
+      ctx.strokeStyle = '#7a94a0';
+      ctx.lineWidth = 1.5;
+
+      // Rear Wheel
+      ctx.beginPath();
+      ctx.arc(backPx + 10, -wheelR, wheelR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(backPx + 10, -wheelR);
+      ctx.lineTo(backPx + 10 + Math.cos(wheelAngle) * wheelR, -wheelR + Math.sin(wheelAngle) * wheelR);
+      ctx.stroke();
+
+      // Front Wheel
+      ctx.strokeStyle = '#7a94a0';
+      ctx.beginPath();
+      ctx.arc(frontPx - 10, -wheelR, wheelR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(frontPx - 10, -wheelR);
+      ctx.lineTo(frontPx - 10 + Math.cos(wheelAngle) * wheelR, -wheelR + Math.sin(wheelAngle) * wheelR);
+      ctx.stroke();
+
+      // Cart Body (extends from backPx to frontPx)
       ctx.fillStyle = '#0f7e9b';
-      for (const dot of this.tickerMarks) {
-        const dotPx = (dot.x / this.trackLength) * trackPixelLength;
-        ctx.beginPath();
-        ctx.arc(dotPx, -2, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.strokeStyle = '#095f76';
+      ctx.lineWidth = 1.5;
+      drawRoundedRect(ctx, backPx, -cartH - wheelR - 1, cartPixelW, cartH, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // Sensor flag
+      ctx.fillStyle = '#d67b19';
+      drawRoundedRect(ctx, backPx + cartPixelW / 2 - 2, -cartH - wheelR - 14, 4, 14, 1);
+      ctx.fill();
+
+      // Front Bumper Highlight Indicator Line & Pointer
+      ctx.fillStyle = '#d67b19';
+      ctx.strokeStyle = '#b86510';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(frontPx, -cartH - wheelR - 1);
+      ctx.lineTo(frontPx, 0);
+      ctx.stroke();
+
+      // Front Bumper label
+      ctx.font = 'bold 9px "Inter", sans-serif';
+      ctx.fillStyle = '#d67b19';
+      ctx.fillText(`Front: ${this.currentX.toFixed(2)}m`, frontPx, -cartH - wheelR - 18);
     }
-
-    // Dynamics Cart
-    const cartX = (this.currentX / this.trackLength) * trackPixelLength;
-    const cartW = 46;
-    const cartH = 18;
-    const wheelR = 5;
-
-    const wheelAngle = (this.currentX / 0.05) % (Math.PI * 2);
-    ctx.fillStyle = '#123140';
-    ctx.strokeStyle = '#7a94a0';
-    ctx.lineWidth = 1.5;
-
-    // Left Wheel
-    ctx.beginPath();
-    ctx.arc(cartX + 10, -wheelR, wheelR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.strokeStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(cartX + 10, -wheelR);
-    ctx.lineTo(cartX + 10 + Math.cos(wheelAngle) * wheelR, -wheelR + Math.sin(wheelAngle) * wheelR);
-    ctx.stroke();
-
-    // Right Wheel
-    ctx.strokeStyle = '#7a94a0';
-    ctx.beginPath();
-    ctx.arc(cartX + cartW - 10, -wheelR, wheelR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.strokeStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(cartX + cartW - 10, -wheelR);
-    ctx.lineTo(cartX + cartW - 10 + Math.cos(wheelAngle) * wheelR, -wheelR + Math.sin(wheelAngle) * wheelR);
-    ctx.stroke();
-
-    // Cart Body
-    ctx.fillStyle = '#0f7e9b';
-    ctx.strokeStyle = '#095f76';
-    ctx.lineWidth = 1.5;
-    drawRoundedRect(ctx, cartX, -cartH - wheelR - 1, cartW, cartH, 4);
-    ctx.fill();
-    ctx.stroke();
-
-    // Cart Top Flag
-    ctx.fillStyle = '#d67b19';
-    drawRoundedRect(ctx, cartX + cartW / 2 - 2, -cartH - wheelR - 14, 4, 14, 1);
-    ctx.fill();
 
     // Vector Overlays
     if (this.showVectors) {
@@ -1045,8 +1225,8 @@ export class DownhillMotionApp {
         ctx.fillStyle = '#d67b19';
         ctx.lineWidth = 2.5;
 
-        const arrowStartX = cartX + cartW;
-        const arrowStartY = -cartH / 2 - wheelR;
+        const arrowStartX = frontPx;
+        const arrowStartY = -14;
         ctx.beginPath();
         ctx.moveTo(arrowStartX, arrowStartY);
         ctx.lineTo(arrowStartX + vLen, arrowStartY);
@@ -1069,8 +1249,8 @@ export class DownhillMotionApp {
         ctx.fillStyle = '#095f76';
         ctx.lineWidth = 2;
 
-        const aStartX = cartX + cartW / 2;
-        const aStartY = -cartH - wheelR - 18;
+        const aStartX = backPx + cartPixelW / 2;
+        const aStartY = -34;
         ctx.beginPath();
         ctx.moveTo(aStartX, aStartY);
         ctx.lineTo(aStartX + aLen, aStartY);
@@ -1090,7 +1270,7 @@ export class DownhillMotionApp {
 
     ctx.restore();
 
-    // Incline Angle arc
+    // Incline Angle Arc
     ctx.strokeStyle = '#d67b19';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1100,6 +1280,15 @@ export class DownhillMotionApp {
     ctx.fillStyle = '#b86510';
     ctx.font = 'bold 11px "Inter", sans-serif';
     ctx.fillText(`θ = ${this.angleDeg.toFixed(1)}°`, endX - 58, endY - 10);
+
+    // Galileo Water Clock / Clepsydra Visual Indicator on bench
+    if (isGalileo) {
+      const waterGrams = (this.currentTime * 14.2).toFixed(1);
+      ctx.fillStyle = '#6e421a';
+      ctx.font = 'bold 10px "Inter", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`💧 Galileo's Clepsydra (Water Balance): ~${waterGrams} grains of water`, padX, benchY + 22);
+    }
   }
 
   // Graphs
@@ -1140,7 +1329,6 @@ export class DownhillMotionApp {
     const maxT = this.getMaxGraphTime();
     const maxX = 2.6;
 
-    // Grid
     ctx.strokeStyle = '#e9f4fb';
     ctx.lineWidth = 1;
     const numGridX = 6;
@@ -1171,7 +1359,6 @@ export class DownhillMotionApp {
       ctx.fillText(`${pos.toFixed(1)}m`, padL - 6, y + 3);
     }
 
-    // Axes
     ctx.strokeStyle = '#0f7e9b';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1188,7 +1375,7 @@ export class DownhillMotionApp {
     ctx.save();
     ctx.translate(14, padT + plotH / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Position x (m)', 0, 0);
+    ctx.fillText('Position x (m) [Front Bumper]', 0, 0);
     ctx.restore();
 
     // Quadratic Best Fit Curve
@@ -1248,7 +1435,7 @@ export class DownhillMotionApp {
       const px = padL + (pt.t / maxT) * plotW;
       const py = padT + plotH - (pt.x / maxX) * plotH;
 
-      ctx.fillStyle = pt.method === 'manual' ? '#d67b19' : (pt.method === 'metronome' ? '#d67b19' : '#0f7e9b');
+      ctx.fillStyle = '#d67b19';
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
