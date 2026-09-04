@@ -146,8 +146,10 @@ export class DownhillMotionApp {
     this.tabPhotogate = document.getElementById('tabPhotogate');
     this.tabStopwatch = document.getElementById('tabStopwatch');
 
-    // Metronome panel elements
+    // Metronome & Stopwatch panels
     this.panelMetronome = document.getElementById('panelMetronome');
+    this.panelStopwatch = document.getElementById('panelStopwatch');
+    this.btnSplit = document.getElementById('btnSplit');
     this.metronomeLed = document.getElementById('metronomeLed');
     this.btnMarkBeat = document.getElementById('btnMarkBeat');
     this.btnMuteSound = document.getElementById('btnMuteSound');
@@ -252,6 +254,10 @@ export class DownhillMotionApp {
 
     this.btnMarkBeat.addEventListener('click', () => this.recordMetronomeMark());
 
+    if (this.btnSplit) {
+      this.btnSplit.addEventListener('click', () => this.recordManualSplit());
+    }
+
     if (this.btnAutoDropMarks) {
       this.btnAutoDropMarks.addEventListener('click', () => this.autoDropCurrentMarks());
     }
@@ -355,8 +361,13 @@ export class DownhillMotionApp {
       this.tabStopwatch.classList.toggle('active', mode === 'stopwatch');
     }
 
-    // Show/hide metronome banner
-    this.panelMetronome.style.display = mode === 'metronome' ? 'flex' : 'none';
+    // Show/hide mode panels
+    if (this.panelMetronome) {
+      this.panelMetronome.style.display = mode === 'metronome' ? 'flex' : 'none';
+    }
+    if (this.panelStopwatch) {
+      this.panelStopwatch.style.display = mode === 'stopwatch' ? 'block' : 'none';
+    }
 
     // Set appropriate incline angle for mode
     if (mode === 'metronome') {
@@ -364,6 +375,12 @@ export class DownhillMotionApp {
       this.sliderAngle.value = 4.0;
       this.valAngle.textContent = '4.0°';
       this.metricAngle.textContent = '4.0°';
+      this.updateAcceleration();
+    } else if (mode === 'stopwatch') {
+      this.angleDeg = 5.0;
+      this.sliderAngle.value = 5.0;
+      this.valAngle.textContent = '5.0°';
+      this.metricAngle.textContent = '5.0°';
       this.updateAcceleration();
     } else {
       this.angleDeg = 6.0;

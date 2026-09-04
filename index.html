@@ -43,6 +43,9 @@
       <button class="lab-tab" id="tabPhotogate" title="Automated timing using an array of optical photogates">
         <span class="tab-icon">⚡</span> 2. Photogate Sensors Lab (Automated Optical Gates)
       </button>
+      <button class="lab-tab" id="tabStopwatch" title="Manual timing: press split button or Spacebar to capture time and position">
+        <span class="tab-icon">⏱</span> 3. Manual Stopwatch Lab
+      </button>
     </nav>
 
     <!-- Classroom Metronome Widget Bar -->
@@ -150,6 +153,16 @@
               <h2 class="panel-title">📊 Part 2: Data Collection</h2>
               <p class="panel-subtitle">Record time and position for at least 6 points</p>
             </div>
+          </div>
+
+          <!-- Manual Stopwatch Split Controls (Visible only in Manual Stopwatch Mode) -->
+          <div id="panelStopwatch" style="display: none; margin-bottom: 0.85rem; text-align: center;">
+            <button class="btn btn-split btn-lg" id="btnSplit" style="width: 100%;">
+              ⏱ Press to Split / Lap (or Spacebar)
+            </button>
+            <p style="font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem;">
+              Press split or hit <strong>Spacebar</strong> as the cart rolls to record points with realistic reaction time scatter.
+            </p>
           </div>
 
           <!-- Table 1: Time vs. Position -->
