@@ -35,23 +35,115 @@
       </div>
     </header>
 
-    <!-- Lab Experiment Method Tabs -->
+    <!-- Lab Experiment Method Tabs (4 Equal Columns) -->
     <nav class="lab-nav-tabs" aria-label="Experiment Method">
       <button class="lab-tab active" id="tabMetronome" title="The classic classroom method: Metronome ticks every second, student marks cart location">
-        <span class="tab-icon">🎵</span> 1. Classroom Metronome Lab (1-Second Beat &amp; Mark)
+        <span class="tab-icon">🎵</span> 1. Metronome Lab (1s Beats)
       </button>
       <button class="lab-tab" id="tabPhotogate" title="Automated timing using an array of optical photogates">
-        <span class="tab-icon">⚡</span> 2. Photogate Sensors Lab (Automated Optical Gates)
+        <span class="tab-icon">⚡</span> 2. Photogates (Automated)
       </button>
       <button class="lab-tab" id="tabStopwatch" title="Manual timing: press split button or Spacebar to capture time and position">
-        <span class="tab-icon">⏱</span> 3. Manual Stopwatch Lab
+        <span class="tab-icon">⏱</span> 3. Stopwatch (Manual)
       </button>
       <button class="lab-tab" id="tabGalileo" title="Recreate Galileo Galilei's original 1638 experiment with rolling bronze sphere, musical bells, and water clock">
-        <span class="tab-icon">📜</span> 4. Galileo's Incline (Renaissance 1638)
+        <span class="tab-icon">📜</span> 4. Galileo Incline (1638)
       </button>
     </nav>
 
-    <!-- Classroom Metronome Widget Bar -->
+    <!-- Apparatus Section (Prominently above data so students immediately see the ramp) -->
+    <section class="canvas-card">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button class="btn btn-primary btn-lg" id="btnPlay">▶ Start Motion</button>
+          <button class="btn btn-ghost" id="btnReset" title="Reset cart to start">↺ Reset</button>
+          <button class="btn btn-ghost" id="btnStep" title="Advance 0.04s">⏯ Step</button>
+          <button class="btn btn-ghost" id="btnSlowMo" title="Toggle 0.5x speed">🐢 Slow Mo (0.5x)</button>
+        </div>
+
+        <div class="toolbar-group">
+          <label class="toggle-label" id="lblVectors" title="Show velocity and acceleration vectors on cart">
+            <input type="checkbox" id="chkVectors" checked>
+            <span>Vectors (<span style="color: var(--accent-amber); font-weight: 700;"><i>v</i></span> &amp; <span style="color: var(--primary-teal-dark); font-weight: 700;"><i>a</i></span>)</span>
+          </label>
+          <label class="toggle-label" id="lblTicker" title="Leave position strobe dots along the track">
+            <input type="checkbox" id="chkTicker">
+            <span>Ticker Dots (0.2s)</span>
+          </label>
+          <label class="toggle-label" title="Include slight rolling friction">
+            <input type="checkbox" id="chkFriction" checked>
+            <span>Rolling Friction</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Modern Metrics Readout (Visible in Metronome, Photogate, Stopwatch modes) -->
+      <div class="metrics-bar" id="barModernMetrics">
+        <div class="metric-pill">
+          <span class="metric-label">Elapsed Time (<i>t</i>)</span>
+          <span class="metric-val" id="metricTime">0.00 s</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Front Bumper Position (<i>x</i>)</span>
+          <span class="metric-val" id="metricPos">0.16 m</span>
+        </div>
+        <div class="metric-pill amber">
+          <span class="metric-label">Instantaneous Velocity (<i>v</i>)</span>
+          <span class="metric-val" id="metricVel">0.00 m/s</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Incline Acceleration (<i>a</i>)</span>
+          <span class="metric-val" id="metricAcc">0.68 m/s²</span>
+        </div>
+        <div class="metric-pill amber">
+          <span class="metric-label">Ramp Angle (<i>θ</i>)</span>
+          <span class="metric-val" id="metricAngle">4.0°</span>
+        </div>
+      </div>
+
+      <!-- Galileo Renaissance Metrics Bar (Visible ONLY in Galileo mode: NO clocks, NO seconds!) -->
+      <div class="metrics-bar galileo-metrics" id="barGalileoMetrics" style="display: none;">
+        <div class="metric-pill amber">
+          <span class="metric-label">Groove Elevation (<i>θ</i>)</span>
+          <span class="metric-val" id="metricGalileoAngle">4.0°</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Bronze Sphere Position</span>
+          <span class="metric-val" id="metricGalileoPos">0.16 m</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Clepsydra Water Weighed</span>
+          <span class="metric-val" id="metricGalileoWater">0.0 grains</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Chimes Sounded</span>
+          <span class="metric-val" id="metricGalileoBells">0 of 5</span>
+        </div>
+        <div class="metric-pill amber">
+          <span class="metric-label">Musical Cadence</span>
+          <span class="metric-val" id="metricGalileoCadence">Ready</span>
+        </div>
+      </div>
+
+      <!-- Interactive Incline Canvas (Height 310px with dynamic top headroom) -->
+      <div class="canvas-viewport">
+        <canvas id="simCanvas" width="1200" height="310" title="Click directly on the track to mark front bumper position"></canvas>
+      </div>
+
+      <!-- Incline Adjustment Controls -->
+      <div class="apparatus-controls">
+        <div class="control-item">
+          <label for="sliderAngle">
+            <span id="lblAngleTitle">Ramp Incline Angle (<span class="math-expr"><i>θ</i></span>)</span>
+            <span class="val" id="valAngle">4.0°</span>
+          </label>
+          <input type="range" id="sliderAngle" min="2.0" max="15.0" step="0.5" value="4.0">
+          <small style="color: var(--muted); font-size: 0.75rem;" id="descAngle">Adjust steepness from 2.0° to 15.0°. Notice that the front bumper starts at <span class="math-expr"><i>x</i>₀ = 0.16 m</span> (the cart/sphere length)!</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- Classroom Metronome Widget Bar (Visible only in Metronome mode) -->
     <div class="metronome-banner" id="panelMetronome">
       <div class="metronome-left">
         <div class="metronome-pendulum-box" title="Visual Metronome Pulse">
@@ -77,13 +169,23 @@
       </div>
     </div>
 
-    <!-- Galileo Galilei Musical Bell & Frets Tuning Studio (Visible in Galileo Mode) -->
+    <!-- Manual Stopwatch Split Controls (Visible only in Manual Stopwatch Mode) -->
+    <div id="panelStopwatch" style="display: none; margin-bottom: 1.25rem; text-align: center; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem;">
+      <button class="btn btn-split btn-lg" id="btnSplit" style="width: 100%; max-width: 480px;">
+        ⏱ Press to Split / Lap (or Spacebar)
+      </button>
+      <p style="font-size: 0.82rem; color: var(--muted); margin-top: 0.45rem;">
+        Press split or hit <strong>Spacebar</strong> as the cart rolls to record points with realistic human reaction time scatter.
+      </p>
+    </div>
+
+    <!-- Galileo Galilei Musical Bell & Frets Tuning Studio (Visible ONLY in Galileo Mode) -->
     <div class="galileo-banner" id="panelGalileoBells" style="display: none;">
       <div class="galileo-banner-header">
         <div class="galileo-banner-info">
           <h3>🔔 Galileo's Frets &amp; Musical Tempo Studio (1638)</h3>
           <p>
-            Galileo proved <span class="math-expr"><i>x</i> ∝ <i>t</i>²</span> by tuning fret positions until the rolling bronze sphere struck the bells with <strong>equal musical beats</strong> (an isochronous rhythm). Drag the bells directly along the track above or use the fret sliders below to test!
+            Galileo discovered that gravity accelerates bodies by tuning fret positions until the rolling bronze sphere struck the bells with <strong>steady, equal musical beats</strong> (an isochronous rhythm). Drag the bells directly along the track above or use the fret sliders below!
           </p>
         </div>
         <div class="galileo-banner-actions">
@@ -162,36 +264,32 @@
         </div>
       </div>
 
-      <!-- Live Chime Cadence Rhythm Tracker -->
+      <!-- Live Chime Cadence Rhythm Tracker (Historical: NO clocks or seconds!) -->
       <div class="galileo-cadence-box">
         <div class="cadence-header-bar">
           <div class="cadence-badge" id="verdictGalileoTempo">
-            ⏳ Release bronze sphere to hear the chime cadence &amp; measure intervals
-          </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <button class="btn btn-sm btn-ghost" id="btnTransferGalileoData" title="Transfer bell strike times to the main data collection table">
-              📥 Transfer Chimes to Main Table
-            </button>
+            ⏳ Release the bronze sphere to hear the chime cadence &amp; observe the water balance
           </div>
         </div>
 
-        <div class="table-wrapper" style="max-height: 180px; margin-bottom: 0;">
+        <div class="table-wrapper" style="max-height: 220px; margin-bottom: 0;">
           <table class="data-table">
             <thead>
               <tr>
                 <th style="width: 55px;">Fret</th>
-                <th>Bell Note</th>
-                <th>Position <i>x</i> (m)</th>
-                <th>Distance Δ<i>x</i> (m)</th>
-                <th>Chime Time <i>t</i> (s)</th>
-                <th>Interval Δ<i>t</i> (s)</th>
-                <th>Tempo / Odd Spacing</th>
+                <th>Bell Pitch</th>
+                <th>Groove Mark <i>x</i> (m)</th>
+                <th>Total Distance Δ<i>x</i></th>
+                <th>Interval Between Frets</th>
+                <th>Distance Ratio</th>
+                <th>Clepsydra Water Weighed</th>
+                <th>Auditory Beat Cadence</th>
               </tr>
             </thead>
             <tbody id="tbodyGalileoChimes">
               <tr>
-                <td colspan="7" style="text-align: center; color: var(--subtle); padding: 0.75rem;">
-                  Start motion to record bell strike times and measure tempo intervals.
+                <td colspan="8" style="text-align: center; color: var(--subtle); padding: 0.85rem;">
+                  Start motion to roll the bronze sphere and record the bell chime beats.
                 </td>
               </tr>
             </tbody>
@@ -200,79 +298,11 @@
       </div>
     </div>
 
-    <!-- Apparatus Section -->
-    <section class="canvas-card">
-      <div class="toolbar">
-        <div class="toolbar-group">
-          <button class="btn btn-primary btn-lg" id="btnPlay">▶ Start Motion</button>
-          <button class="btn btn-ghost" id="btnReset" title="Reset cart to start">↺ Reset</button>
-          <button class="btn btn-ghost" id="btnStep" title="Advance 0.04s">⏯ Step</button>
-          <button class="btn btn-ghost" id="btnSlowMo" title="Toggle 0.5x speed">🐢 Slow Mo (0.5x)</button>
-        </div>
-
-        <div class="toolbar-group">
-          <label class="toggle-label" title="Show velocity and acceleration vectors on cart">
-            <input type="checkbox" id="chkVectors" checked>
-            <span>Vectors (<span style="color: var(--accent-amber); font-weight: 700;"><i>v</i></span> &amp; <span style="color: var(--primary-teal-dark); font-weight: 700;"><i>a</i></span>)</span>
-          </label>
-          <label class="toggle-label" title="Leave position strobe dots along the track">
-            <input type="checkbox" id="chkTicker">
-            <span>Ticker Dots (0.2s)</span>
-          </label>
-          <label class="toggle-label" title="Include slight rolling friction">
-            <input type="checkbox" id="chkFriction" checked>
-            <span>Rolling Friction</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Real-time Metrics Readout -->
-      <div class="metrics-bar">
-        <div class="metric-pill">
-          <span class="metric-label">Elapsed Time (<i>t</i>)</span>
-          <span class="metric-val" id="metricTime">0.00 s</span>
-        </div>
-        <div class="metric-pill">
-          <span class="metric-label">Front Bumper Position (<i>x</i>)</span>
-          <span class="metric-val" id="metricPos">0.16 m</span>
-        </div>
-        <div class="metric-pill amber">
-          <span class="metric-label">Instantaneous Velocity (<i>v</i>)</span>
-          <span class="metric-val" id="metricVel">0.00 m/s</span>
-        </div>
-        <div class="metric-pill">
-          <span class="metric-label">Incline Acceleration (<i>a</i>)</span>
-          <span class="metric-val" id="metricAcc">0.68 m/s²</span>
-        </div>
-        <div class="metric-pill amber">
-          <span class="metric-label">Ramp Angle (<i>θ</i>)</span>
-          <span class="metric-val" id="metricAngle">4.0°</span>
-        </div>
-      </div>
-
-      <!-- Interactive Incline Canvas (Height 310px with dynamic top headroom) -->
-      <div class="canvas-viewport">
-        <canvas id="simCanvas" width="1200" height="310" title="Click directly on the track to mark front bumper position"></canvas>
-      </div>
-
-      <!-- Incline Adjustment Controls -->
-      <div class="apparatus-controls">
-        <div class="control-item">
-          <label for="sliderAngle">
-            <span>Ramp Incline Angle (<span class="math-expr"><i>θ</i></span>)</span>
-            <span class="val" id="valAngle">4.0°</span>
-          </label>
-          <input type="range" id="sliderAngle" min="2.0" max="15.0" step="0.5" value="4.0">
-          <small style="color: var(--muted); font-size: 0.75rem;">Adjust steepness from 2.0° to 15.0°. Notice that the front bumper starts at <span class="math-expr"><i>x</i>₀ = 0.16 m</span> (the cart length)!</small>
-        </div>
-      </div>
-    </section>
-
-    <!-- Galileo Galilei Renaissance 1638 Dossier (Visible in Galileo Mode) -->
+    <!-- Galileo Galilei Renaissance 1638 Dossier (Visible ONLY in Galileo Mode) -->
     <section class="galileo-dossier" id="panelGalileoHistory" style="display: none;">
       <div class="folio-header">
-        <h2>📜 Galileo Galilei: Diluting Gravity on the Inclined Plane (1638)</h2>
-        <p>How Galileo proved free-fall acceleration without clocks using musical beats, water weighing, and a grooved beam.</p>
+        <h2>📜 Galileo Galilei: Diluting Gravity Without Clocks (1638)</h2>
+        <p>How Galileo proved free-fall acceleration without clocks or stopwatches using musical beats, water weighing, and a grooved wooden beam.</p>
       </div>
 
       <div class="quote-block">
@@ -280,50 +310,61 @@
         <span class="quote-author">— Galileo Galilei, <em>Dialogues Concerning Two New Sciences</em> (Discorsi), Day Three (1638)</span>
       </div>
 
-      <div style="margin: 1rem 0; font-size: 0.88rem; line-height: 1.6; color: #4a3424;">
-        <strong>The Rule of Odd Numbers (<em>Regola dei numeri dispari</em>):</strong> 
-        Because direct vertical free-fall is too rapid for the human eye to measure, Galileo slowed (“diluted”) gravity by rolling a bronze ball down an incline. In successive equal intervals of time (<span class="math-expr"><i>t</i> = 1, 2, 3, 4</span>), the distances traversed during each interval are in the ratio of the odd numbers:
-        <span class="math-expr">1 : 3 : 5 : 7 : 9</span>. Therefore, the total cumulative distance grows with the squares of the times:
-        <span class="math-expr">1, (1+3)=4, (4+5)=9, (9+7)=16</span>, proving that <span class="math-expr"><i>x</i> ∝ <i>t</i>²</span>!
+      <div style="margin: 1rem 0; font-size: 0.9rem; line-height: 1.6; color: #4a3424;">
+        <h4 style="font-size: 1rem; color: #b86510; margin-bottom: 0.35rem;">How Did Galileo Measure Falling Bodies Without Modern Clocks?</h4>
+        <p style="margin-bottom: 0.6rem;">
+          In Galileo's era, clocks with minute or second hands did not exist—the pendulum clock was only patented by Christiaan Huygens in 1657, fifteen years after Galileo's death. Free fall was far too fast to observe with the naked eye. Galileo solved this with two ingenious techniques:
+        </p>
+        <ul style="padding-left: 1.25rem; margin-bottom: 0.75rem;">
+          <li style="margin-bottom: 0.4rem;">
+            <strong>1. The Musical Ear &amp; Movable Lute Frets:</strong> Galileo was the son of prominent lute virtuoso and music theorist Vincenzo Galilei. He knew the human musical ear can detect rhythmic irregularities as small as <span class="math-expr">1/64</span>th of a second! He tied movable sheep-gut lute strings (frets) around the wooden beam and hung little brass bells above them. By shifting the frets until the rolling ball struck the bells with a <em>steady, equal musical beat</em> (isochronism), he discovered that the distances between successive frets always followed the sequence of odd numbers: <span class="math-expr">1 : 3 : 5 : 7 : 9</span>!
+          </li>
+          <li>
+            <strong>2. The Clepsydra (Water Balance):</strong> To measure elapsed duration without clocks, Galileo collected the steady trickle of water from a large elevated tank into a glass during the descent, then weighed the water on an accurate jeweler's balance. Because water flowed at a constant rate, the <em>weight of water</em> was directly proportional to elapsed time. Comparing runs, quadrupling the distance (<span class="math-expr">4×</span>) required exactly double the weight of water (<span class="math-expr">2×</span>), proving:
+            <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary-teal-dark);">
+              Distance Traversed ∝ (Weight of Water)²
+            </div>
+          </li>
+        </ul>
       </div>
 
       <div class="artifact-grid">
         <div class="artifact-card">
           <h3>🏛 Museo Galileo Artifact</h3>
-          <p>Examine high-resolution archival documentation of the surviving 17th/18th-century wooden inclined plane equipped with musical bells at Museo Galileo in Florence, Italy.</p>
+          <p>Examine archival documentation of the surviving wooden inclined plane equipped with musical bells at Museo Galileo in Florence, Italy (Inv. 1041).</p>
           <a href="https://catalogue.museogalileo.it/object/InclinedPlane.html" target="_blank" rel="noopener" class="artifact-link">
-            🔍 View Museo Galileo Catalogue (inv. 1045) →
+            🔍 View Museo Galileo Catalogue (Inv. 1041) →
           </a>
         </div>
 
         <div class="artifact-card">
-          <h3>✍️ Galileo's Manuscript (Folio 116v)</h3>
-          <p>View Galileo's actual handwritten ink calculations preserved at the National Library of Florence, recording experimental distances and time ratios on an incline.</p>
-          <a href="https://brunelleschi.imss.fi.it/galileopalazzofabbri/inglese/ilaboratorio/i_piano_inclinato.html" target="_blank" rel="noopener" class="artifact-link">
-            📜 Inspect Manuscript Folio 116v →
+          <h3>✍️ Galileo's Manuscript (Ms. Gal. 72)</h3>
+          <p>Inspect digital scans of Galileo's actual handwritten experimental notes, incline calculations, and raw data preserved in Volume 72 at the Biblioteca Nazionale Centrale di Firenze.</p>
+          <a href="https://www.mpiwg-berlin.mpg.de/Galileo_Prototype/MAIN.HTM" target="_blank" rel="noopener" class="artifact-link">
+            📜 Inspect Manuscript Volume 72 (MPIWG) →
           </a>
         </div>
 
         <div class="artifact-card">
           <h3>🎬 Historical Demonstration Video</h3>
-          <p>Watch the official Museo Galileo reconstruction demonstrating the rolling sphere, gut fret musical timing, and the water clock in action.</p>
-          <a href="https://www.youtube.com/watch?v=ZfO429Qo6sM" target="_blank" rel="noopener" class="artifact-link">
+          <p>Watch the official Museo Galileo reconstruction demonstrating the rolling sphere, brass chime bells, and water clock in action.</p>
+          <a href="https://www.youtube.com/watch?v=R9KjC3h68dM" target="_blank" rel="noopener" class="artifact-link">
             ▶ Watch Museo Galileo Demo (YouTube) →
           </a>
         </div>
 
         <div class="artifact-card">
-          <h3>🎵 The Physics of Galileo's Bells</h3>
-          <p>Explore how Galileo used musical pitch, rhythm, and equal time intervals to discover the law of falling bodies centuries before electronic timers.</p>
-          <a href="https://www.youtube.com/results?search_query=veritasium+galileo+incline" target="_blank" rel="noopener" class="artifact-link">
-            🎥 Veritasium: Galileo &amp; Falling Bodies →
+          <h3>🎥 Museo Galileo Multimedia Portal</h3>
+          <p>Explore detailed virtual 3D models, animation of the bell striking mechanics, and historical explanations of the experiment.</p>
+          <a href="https://catalogue.museogalileo.it/multimedia/InclinedPlane.html" target="_blank" rel="noopener" class="artifact-link">
+            🎬 Museo Galileo Multimedia Portal →
           </a>
         </div>
       </div>
     </section>
 
-    <!-- Lab Grid: Data Acquisition & Synchronized Graphs -->
-    <div class="lab-grid">
+    <!-- Lab Grid: Modern Data Acquisition & Synchronized Graphs (Hidden in Galileo Mode) -->
+    <div class="lab-grid" id="panelModernAnalysis">
       <!-- Left Column: Data Tables & Timing -->
       <div>
         <!-- Data Collection Card -->

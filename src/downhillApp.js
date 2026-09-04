@@ -230,16 +230,32 @@ export class DownhillMotionApp {
     // Sliders & Toggles
     this.sliderAngle = document.getElementById('sliderAngle');
     this.valAngle = document.getElementById('valAngle');
+    this.lblAngleTitle = document.getElementById('lblAngleTitle');
+    this.descAngle = document.getElementById('descAngle');
     this.chkFriction = document.getElementById('chkFriction');
     this.chkVectors = document.getElementById('chkVectors');
     this.chkTicker = document.getElementById('chkTicker');
+    this.lblVectors = document.getElementById('lblVectors');
+    this.lblTicker = document.getElementById('lblTicker');
 
-    // Readout metrics
+    // Metrics Bars
+    this.barModernMetrics = document.getElementById('barModernMetrics');
+    this.barGalileoMetrics = document.getElementById('barGalileoMetrics');
+    this.metricGalileoAngle = document.getElementById('metricGalileoAngle');
+    this.metricGalileoPos = document.getElementById('metricGalileoPos');
+    this.metricGalileoWater = document.getElementById('metricGalileoWater');
+    this.metricGalileoBells = document.getElementById('metricGalileoBells');
+    this.metricGalileoCadence = document.getElementById('metricGalileoCadence');
+
+    // Readout metrics (Modern)
     this.metricTime = document.getElementById('metricTime');
     this.metricPos = document.getElementById('metricPos');
     this.metricVel = document.getElementById('metricVel');
     this.metricAcc = document.getElementById('metricAcc');
     this.metricAngle = document.getElementById('metricAngle');
+
+    // Modern Analysis Grid
+    this.panelModernAnalysis = document.getElementById('panelModernAnalysis');
 
     // Tables & Badges
     this.tbodyData = document.getElementById('tbodyData');
@@ -499,6 +515,35 @@ export class DownhillMotionApp {
       this.panelGalileoHistory.style.display = mode === 'galileo' ? 'block' : 'none';
     }
 
+    // Modern analysis panel is HIDDEN in Galileo mode (Galileo did not use clocks or calculus tangents)
+    if (this.panelModernAnalysis) {
+      this.panelModernAnalysis.style.display = mode === 'galileo' ? 'none' : 'grid';
+    }
+
+    // Metrics bar toggle
+    if (this.barModernMetrics) {
+      this.barModernMetrics.style.display = mode === 'galileo' ? 'none' : 'flex';
+    }
+    if (this.barGalileoMetrics) {
+      this.barGalileoMetrics.style.display = mode === 'galileo' ? 'flex' : 'none';
+    }
+
+    // Sidebar toggles for vectors and ticker (irrelevant in Renaissance wood beam)
+    if (this.lblVectors) {
+      this.lblVectors.style.display = mode === 'galileo' ? 'none' : '';
+    }
+    if (this.lblTicker) {
+      this.lblTicker.style.display = mode === 'galileo' ? 'none' : '';
+    }
+    if (this.lblAngleTitle) {
+      this.lblAngleTitle.textContent = mode === 'galileo' ? 'Groove Elevation Angle (θ)' : 'Incline Angle (θ)';
+    }
+    if (this.descAngle) {
+      this.descAngle.textContent = mode === 'galileo'
+        ? 'Galileo diluted gravity using gentle elevations between 1° and 6°.'
+        : 'Steeper angle increases downhill acceleration: a = g sin(θ)';
+    }
+
     // Set appropriate incline angle for mode
     if (mode === 'metronome' || mode === 'galileo') {
       this.angleDeg = 4.0;
@@ -563,7 +608,6 @@ export class DownhillMotionApp {
         this.addRecordPoint(0.00, this.x0, 0.00, this.labMode);
       } else if (this.labMode === 'galileo') {
         this.audio.playBell(440);
-        this.addRecordPoint(0.00, this.x0, 0.00, this.labMode);
       }
     }
 
@@ -683,20 +727,27 @@ export class DownhillMotionApp {
 
           // Compute interval Δt and distance Δx
           const prevTime = this.galileoChimes.length > 0 ? this.galileoChimes[this.galileoChimes.length - 1].t : 0.00;
+          const prevX = this.galileoChimes.length > 0 ? this.galileoChimes[this.galileoChimes.length - 1].x : this.x0;
           const dt = Math.max(0.01, bell.chimeTime - prevTime);
           const dx = Math.max(0.00, bell.x - this.x0);
+          const stepDx = Math.max(0.00, bell.x - prevX);
 
           // Odd-ratio comparison relative to first bell displacement
           const firstDx = this.galileoChimes.length > 0 ? this.galileoChimes[0].dx : dx;
           const ratioNum = firstDx > 0.01 ? (dx / firstDx).toFixed(1) : '1.0';
+          const stepRatio = firstDx > 0.01 ? (stepDx / firstDx).toFixed(1) : '1.0';
+          const waterGrains = Math.round(bell.chimeTime * 18.2);
 
           const chimeRecord = {
             id: bell.id,
             note: bell.note,
             x: bell.x,
             dx: dx,
+            stepDx: stepDx,
+            stepRatio: stepRatio,
             t: bell.chimeTime,
             dt: dt,
+            waterGrains: waterGrains,
             ratio: `${ratioNum}×`
           };
           this.galileoChimes.push(chimeRecord);
@@ -708,10 +759,6 @@ export class DownhillMotionApp {
               if (this.fretCards[i]) this.fretCards[i].classList.remove('active-rung');
             }, 600);
           }
-
-          // Auto-log into main recordedPoints table for analysis
-          const vInst = velocityAtTime(bell.chimeTime, this.v0, this.currentA);
-          this.addRecordPoint(bell.chimeTime, bell.x, vInst, 'galileo');
 
           this.updateGalileoChimeTable();
         }
@@ -969,14 +1016,14 @@ export class DownhillMotionApp {
     if (this.galileoChimes.length === 0) {
       this.tbodyGalileoChimes.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align: center; color: var(--subtle); padding: 0.75rem;">
-            Start motion to record bell strike times and measure tempo intervals.
+          <td colspan="8" style="text-align: center; color: var(--subtle); padding: 0.85rem;">
+            Start motion to roll the bronze sphere and record the bell chime beats.
           </td>
         </tr>
       `;
       if (this.verdictGalileoTempo) {
         this.verdictGalileoTempo.className = 'cadence-badge';
-        this.verdictGalileoTempo.textContent = '⏳ Release bronze sphere to hear the chime cadence & measure intervals';
+        this.verdictGalileoTempo.innerHTML = '⏳ Release the bronze sphere to hear the chime cadence &amp; observe the water balance';
       }
       return;
     }
@@ -986,35 +1033,56 @@ export class DownhillMotionApp {
     for (let i = 0; i < this.galileoChimes.length; i++) {
       const c = this.galileoChimes[i];
       if (i > 0) dts.push(c.dt);
+
+      let cadenceLabel = '<span style="color: #0f7e9b; font-weight: 600;">First Strike (Reference)</span>';
+      if (i > 0) {
+        const prevDt = this.galileoChimes[i - 1].dt;
+        if (i === 1) {
+          cadenceLabel = '<span>Beat #2</span>';
+        } else if (Math.abs(c.dt - prevDt) <= 0.08) {
+          cadenceLabel = '<span style="color: #2b7a4b; font-weight: 600;">● Steady Beat 🎵</span>';
+        } else if (c.dt < prevDt - 0.05) {
+          cadenceLabel = '<span style="color: #d67b19; font-weight: 600;">⚡ Accelerated</span>';
+        } else {
+          cadenceLabel = '<span style="color: #666;">Irregular</span>';
+        }
+      }
+
       rows += `
         <tr>
           <td style="font-weight: 700; color: #5c3a1e;">#${c.id}</td>
           <td><span class="fret-badge">${c.note}</span></td>
           <td style="font-family: monospace; font-weight: 600;">${c.x.toFixed(2)} m</td>
           <td style="font-family: monospace;">${c.dx.toFixed(2)} m</td>
-          <td style="font-family: monospace; font-weight: 700; color: #0f7e9b;">${c.t.toFixed(2)} s</td>
-          <td style="font-family: monospace; font-weight: 700; color: #d67b19;">${i === 0 ? '— (first)' : `${c.dt.toFixed(2)} s`}</td>
-          <td><span style="font-weight: 600; color: #6d4b29;">${c.ratio}</span></td>
+          <td style="font-family: monospace; color: #6d4b29;">${c.stepDx.toFixed(2)} m <small>(${c.stepRatio}×)</small></td>
+          <td><span style="font-weight: 700; color: #0f7e9b;">${c.ratio}</span></td>
+          <td style="font-family: monospace; font-weight: 600; color: #5c3a1e;">💧 ${c.waterGrains} grains</td>
+          <td>${cadenceLabel}</td>
         </tr>
       `;
     }
     this.tbodyGalileoChimes.innerHTML = rows;
 
     // Assess tempo rhythm
-    if (this.verdictGalileoTempo && dts.length >= 2) {
-      const avg = dts.reduce((a, b) => a + b, 0) / dts.length;
-      const maxDiff = Math.max(...dts.map(d => Math.abs(d - avg)));
-      const isDecreasing = dts.every((d, idx) => idx === 0 || d < dts[idx - 1] - 0.04);
-
-      if (maxDiff <= 0.08) {
-        this.verdictGalileoTempo.className = 'cadence-badge steady';
-        this.verdictGalileoTempo.innerHTML = `🎶 <strong>Steady Musical Tempo!</strong> Equal intervals (Δ<i>t</i> ≈ ${avg.toFixed(2)}s). Confirms <i>x</i> ∝ <i>t</i>² with distance ratios 1 : 4 : 9 : 16 : 25!`;
-      } else if (isDecreasing) {
-        this.verdictGalileoTempo.className = 'cadence-badge accelerating';
-        this.verdictGalileoTempo.innerHTML = `⚡ <strong>Accelerating Gallop!</strong> Intervals shrink (${dts.map(d => `${d.toFixed(2)}s`).join(' → ')}). Sphere speeds up over equal distances!`;
-      } else {
+    if (this.verdictGalileoTempo) {
+      if (dts.length === 0) {
         this.verdictGalileoTempo.className = 'cadence-badge';
-        this.verdictGalileoTempo.innerHTML = `🎼 Irregular Tempo (intervals: ${dts.map(d => `${d.toFixed(2)}s`).join(', ')}). Adjust frets to match ratios 1, 4, 9, 16, 25!`;
+        this.verdictGalileoTempo.innerHTML = `🔔 Fret 1 struck (${this.galileoChimes[0].waterGrains} grains of water weighed). Roll continuing...`;
+      } else {
+        const avg = dts.reduce((a, b) => a + b, 0) / dts.length;
+        const maxDiff = Math.max(...dts.map(d => Math.abs(d - avg)));
+        const isDecreasing = dts.every((d, idx) => idx === 0 || d < dts[idx - 1] - 0.04);
+
+        if (maxDiff <= 0.08) {
+          this.verdictGalileoTempo.className = 'cadence-badge steady';
+          this.verdictGalileoTempo.innerHTML = `🎶 <strong>Steady Musical Isochronism!</strong> The bells strike in equal, regular rhythm. Galileo proved this produces distance ratios 1 : 4 : 9 : 16 : 25 and water weights 1 : 2 : 3 : 4 : 5!`;
+        } else if (isDecreasing) {
+          this.verdictGalileoTempo.className = 'cadence-badge accelerating';
+          this.verdictGalileoTempo.innerHTML = `⚡ <strong>Accelerating Gallop!</strong> Intervals between bells shorten as the sphere rolls faster. Equal spatial distances do not yield equal musical time!`;
+        } else {
+          this.verdictGalileoTempo.className = 'cadence-badge';
+          this.verdictGalileoTempo.innerHTML = `🎼 <strong>Unequal Cadence:</strong> Intervals between frets are irregular. Slide the frets to match odd numbers 1 : 3 : 5 : 7 : 9 to tune an isochronous rhythm!`;
+        }
       }
     }
   }
@@ -1189,11 +1257,53 @@ export class DownhillMotionApp {
   }
 
   updateReadouts() {
-    this.metricTime.textContent = `${this.currentTime.toFixed(2)} s`;
-    this.metricPos.textContent = `${this.currentX.toFixed(2)} m`;
-    this.metricVel.textContent = `${this.currentV.toFixed(2)} m/s`;
-    this.metricAcc.textContent = `${this.currentA.toFixed(2)} m/s²`;
-    this.metricAngle.textContent = `${this.angleDeg.toFixed(1)}°`;
+    // Modern readouts
+    if (this.metricTime) this.metricTime.textContent = `${this.currentTime.toFixed(2)} s`;
+    if (this.metricPos) this.metricPos.textContent = `${this.currentX.toFixed(2)} m`;
+    if (this.metricVel) this.metricVel.textContent = `${this.currentV.toFixed(2)} m/s`;
+    if (this.metricAcc) this.metricAcc.textContent = `${this.currentA.toFixed(2)} m/s²`;
+    if (this.metricAngle) this.metricAngle.textContent = `${this.angleDeg.toFixed(1)}°`;
+
+    // Galileo Renaissance readouts
+    if (this.metricGalileoAngle) this.metricGalileoAngle.textContent = `${this.angleDeg.toFixed(1)}°`;
+    if (this.metricGalileoPos) this.metricGalileoPos.textContent = `${this.currentX.toFixed(2)} m`;
+
+    const grainsOfWater = Math.round(this.currentTime * 18.2);
+    if (this.metricGalileoWater) {
+      this.metricGalileoWater.textContent = `${grainsOfWater} grains`;
+    }
+
+    const rungCount = this.galileoBells.filter(b => b.rung).length;
+    if (this.metricGalileoBells) {
+      this.metricGalileoBells.textContent = `${rungCount} of 5`;
+    }
+
+    if (this.metricGalileoCadence) {
+      if (rungCount === 0) {
+        this.metricGalileoCadence.textContent = 'Ready';
+      } else if (rungCount < 5) {
+        this.metricGalileoCadence.textContent = `Chiming (${rungCount}/5)`;
+      } else {
+        const dts = [];
+        for (let i = 1; i < this.galileoChimes.length; i++) {
+          dts.push(this.galileoChimes[i].dt);
+        }
+        if (dts.length >= 2) {
+          const avg = dts.reduce((a, b) => a + b, 0) / dts.length;
+          const maxDiff = Math.max(...dts.map(d => Math.abs(d - avg)));
+          const isDecreasing = dts.every((d, idx) => idx === 0 || d < dts[idx - 1] - 0.04);
+          if (maxDiff <= 0.08) {
+            this.metricGalileoCadence.textContent = 'Steady Beat 🎵';
+          } else if (isDecreasing) {
+            this.metricGalileoCadence.textContent = 'Accelerating Gallop ⚡';
+          } else {
+            this.metricGalileoCadence.textContent = 'Irregular Tempo 🎼';
+          }
+        } else {
+          this.metricGalileoCadence.textContent = 'Complete';
+        }
+      }
+    }
   }
 
   updateTablesUI() {
