@@ -1,0 +1,9 @@
+{
+  "name": "downhill-motion-sim",
+  "version": "1.0.0",
+  "description": "Interactive Downhill Motion Kinematics Simulation - The Thinking Experiment",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/downhillPhysics.test.js"
+  }
+}

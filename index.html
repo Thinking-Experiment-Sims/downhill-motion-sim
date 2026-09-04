@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab: Downhill Motion | The Thinking Experiment</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="src/downhillApp.js"></script>
+</head>
+<body>
+  <!-- Decorative background blueprint grid -->
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <div class="shell">
+    <!-- Header Banner -->
+    <header class="hero">
+      <div class="hero-top">
+        <div>
+          <a href="https://thinking-experiment-sims.github.io/interactive-physics/" class="brand-badge" title="Return to Physics Simulations Hub">← The Thinking Experiment</a>
+          <span class="lab-badge">📐 Physics Lab Activity</span>
+          <h1>Lab: Downhill Motion</h1>
+          <p class="hero-subtitle">
+            Determine the mathematical relationship between position and time for a cart rolling down an incline with constant acceleration, then use the graph's tangent slopes to construct an instantaneous velocity-time model.
+          </p>
+        </div>
+        <div class="hero-meta-badges">
+          <a href="https://vladimirlopez.github.io/slope_tangents/" target="_blank" rel="noopener" class="btn btn-sm btn-accent" title="Open the existing Tangent Line Analysis tool in the hub">
+            📐 Tangent Line Sim
+          </a>
+          <a href="https://thinking-experiment-sims.github.io/interactive-physics/" class="btn btn-sm btn-ghost" title="Go to Simulations Hub">
+            🏠 Hub
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Lab Experiment Method Tabs -->
+    <nav class="lab-nav-tabs" aria-label="Experiment Method">
+      <button class="lab-tab active" id="tabMetronome" title="The classic classroom method: Metronome ticks every second, student marks cart location">
+        <span class="tab-icon">🎵</span> 1. Classroom Metronome Lab (1-Second Beat &amp; Mark)
+      </button>
+      <button class="lab-tab" id="tabPhotogate" title="Automated timing using an array of optical photogates">
+        <span class="tab-icon">⚡</span> 2. Photogate Sensors Lab
+      </button>
+      <button class="lab-tab" id="tabStopwatch" title="Manual timing with reaction time latency scatter">
+        <span class="tab-icon">⏱</span> 3. Manual Stopwatch Lab
+      </button>
+    </nav>
+
+    <!-- Classroom Metronome Widget Bar -->
+    <div class="metronome-banner" id="panelMetronome">
+      <div class="metronome-left">
+        <div class="metronome-pendulum-box" title="Visual Metronome Pulse">
+          <div class="metronome-led" id="metronomeLed"></div>
+        </div>
+        <div class="metronome-info">
+          <h3>🎵 Classroom Metronome (1 Beat Every Second · 60 BPM)</h3>
+          <p>
+            Listen for the 1-second cadence. Release cart on a beat, then press <strong>Mark Cart Position</strong> (or hit <strong>Spacebar</strong> / click the track) on each beat!
+          </p>
+        </div>
+      </div>
+
+      <div class="metronome-actions">
+        <button class="btn btn-ghost btn-sm" id="btnMuteSound" title="Toggle audio metronome ticks">🔊 Audio ON</button>
+        <span class="beat-pill" id="valCurrentBeat">Beat #0 (Ready / Release)</span>
+        <button class="btn btn-mark-beat" id="btnMarkBeat" title="Mark where the cart is at this 1-second beat">
+          🖊 Mark Cart Position (Spacebar)
+        </button>
+        <button class="btn btn-sm btn-ghost" id="btnAutoDropMarks" title="Pre-mark exact 1-second positions">
+          📍 Exact Marks
+        </button>
+      </div>
+    </div>
+
+    <!-- Apparatus Section -->
+    <section class="canvas-card">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button class="btn btn-primary btn-lg" id="btnPlay">▶ Start Motion</button>
+          <button class="btn btn-ghost" id="btnReset" title="Reset cart to start">↺ Reset</button>
+          <button class="btn btn-ghost" id="btnStep" title="Advance 0.04s">⏯ Step</button>
+          <button class="btn btn-ghost" id="btnSlowMo" title="Toggle 0.5x speed">🐢 Slow Mo (0.5x)</button>
+        </div>
+
+        <div class="toolbar-group">
+          <label class="toggle-label" title="Show velocity and acceleration vectors on cart">
+            <input type="checkbox" id="chkVectors" checked>
+            <span>Vectors (<span style="color: var(--accent-amber); font-weight: 700;"><i>v</i></span> &amp; <span style="color: var(--primary-teal-dark); font-weight: 700;"><i>a</i></span>)</span>
+          </label>
+          <label class="toggle-label" title="Leave position strobe dots along the track">
+            <input type="checkbox" id="chkTicker">
+            <span>Ticker Dots (0.2s)</span>
+          </label>
+          <label class="toggle-label" title="Include slight rolling friction">
+            <input type="checkbox" id="chkFriction" checked>
+            <span>Cart Friction</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Real-time Metrics Readout -->
+      <div class="metrics-bar">
+        <div class="metric-pill">
+          <span class="metric-label">Elapsed Time (<i>t</i>)</span>
+          <span class="metric-val" id="metricTime">0.00 s</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Position (<i>x</i>)</span>
+          <span class="metric-val" id="metricPos">0.00 m</span>
+        </div>
+        <div class="metric-pill amber">
+          <span class="metric-label">Instantaneous Velocity (<i>v</i>)</span>
+          <span class="metric-val" id="metricVel">0.00 m/s</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-label">Incline Acceleration (<i>a</i>)</span>
+          <span class="metric-val" id="metricAcc">0.68 m/s²</span>
+        </div>
+        <div class="metric-pill amber">
+          <span class="metric-label">Ramp Angle (<i>θ</i>)</span>
+          <span class="metric-val" id="metricAngle">4.0°</span>
+        </div>
+      </div>
+
+      <!-- Interactive Incline Canvas -->
+      <div class="canvas-viewport">
+        <canvas id="simCanvas" width="1200" height="250" title="Click directly on the track to mark cart position"></canvas>
+      </div>
+
+      <!-- Incline Adjustment Controls -->
+      <div class="apparatus-controls">
+        <div class="control-item">
+          <label for="sliderAngle">
+            <span>Ramp Incline Angle (<span class="math-expr"><i>θ</i></span>)</span>
+            <span class="val" id="valAngle">4.0°</span>
+          </label>
+          <input type="range" id="sliderAngle" min="2.0" max="15.0" step="0.5" value="4.0">
+          <small style="color: var(--muted); font-size: 0.75rem;">Gentle slopes (3°–5°) allow easy tracking across 3–4 one-second metronome beats.</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lab Grid: Data Acquisition & Synchronized Graphs -->
+    <div class="lab-grid">
+      <!-- Left Column: Data Tables & Timing -->
+      <div>
+        <!-- Data Collection Card -->
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">📊 Part 2: Data Collection</h2>
+              <p class="panel-subtitle">Record time and position for at least 6 points</p>
+            </div>
+          </div>
+
+          <!-- Table 1: Time vs. Position -->
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px;">#</th>
+                  <th>Time (s)</th>
+                  <th>Position (m)</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyData">
+                <tr><td colspan="3" style="text-align: center; color: var(--subtle); padding: 1.5rem;">No data collected yet. Start the cart or load sample data.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Table Action Buttons -->
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem;">
+            <button class="btn btn-sm btn-ghost" id="btnSampleData" title="Load sample 1-second metronome points">⚡ Sample Data</button>
+            <button class="btn btn-sm btn-ghost" id="btnClearData" title="Clear all recorded points">🗑 Clear</button>
+            <button class="btn btn-sm btn-ghost" id="btnCopyData" title="Copy table to clipboard for spreadsheets">📋 Copy TSV</button>
+            <button class="btn btn-sm btn-ghost" id="btnExportCSV" title="Download CSV file">📥 CSV</button>
+          </div>
+
+          <!-- Part 4 Instantaneous Velocity Table -->
+          <div class="panel-header" style="margin-top: 1.25rem;">
+            <div>
+              <h3 class="panel-title" style="font-size: 1rem; color: var(--accent-amber-dark);">
+                📈 Part 4: Velocity Model Data
+              </h3>
+              <p class="panel-subtitle">Instantaneous velocities from tangent slopes</p>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px;">#</th>
+                  <th>Time (s)</th>
+                  <th>Velocity (m/s)</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyVel">
+                <tr><td colspan="3" style="text-align: center; color: var(--subtle); padding: 1.5rem;">Need at least 3 points to calculate tangent velocities.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Hub Bridge Box -->
+        <div class="hub-bridge-banner">
+          <div class="hub-bridge-text">
+            <h4>📐 Dedicated Tangent Line Sim</h4>
+            <p>You can also copy this data directly into the showcase hub's <strong>Tangent Line Analysis</strong> tool to inspect parabolas and explore instantaneous rate of change.</p>
+          </div>
+          <button class="btn btn-sm btn-accent" id="btnSendToTangentSim">
+            🚀 Open Tangent Tool
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Synchronized Kinematics Graphs -->
+      <div>
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">📈 Parts 3 &amp; 4: Kinematics Graphs</h2>
+              <p class="panel-subtitle">Quadratic position curve with live tangent inspector, and linear velocity model</p>
+            </div>
+          </div>
+
+          <div class="graphs-container">
+            <!-- Position vs. Time Graph -->
+            <div class="graph-box">
+              <div class="graph-head">
+                <span class="graph-title">
+                  <span>🔵</span> Position vs. Time (<span class="math-expr"><i>x</i>-<i>t</i></span>)
+                </span>
+              </div>
+              <canvas id="canvasXT" class="graph-canvas" width="500" height="260"></canvas>
+              <div class="fit-formula-badge" id="badgeQuadFit">
+                <span>Fit requires ≥ 3 data points</span>
+                <span>R² = --</span>
+              </div>
+
+              <!-- Interactive Tangent Scrubber -->
+              <div class="tangent-controls">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 700;">
+                  <span style="color: var(--accent-amber-dark);">Tangent Line Inspector:</span>
+                  <span style="color: var(--ink);">Time: <span id="valTangentTime">0.00 s</span> | Slope (<span class="math-expr"><i>v</i></span>): <strong id="valTangentSlope" style="color: var(--accent-amber-dark);">-- m/s</strong></span>
+                </div>
+                <div class="tangent-slider-row">
+                  <span style="font-size: 0.75rem; color: var(--muted);">0s</span>
+                  <input type="range" id="sliderTangent" min="0.0" max="3.0" step="0.05" value="0.0">
+                  <span style="font-size: 0.75rem; color: var(--muted);">End</span>
+                </div>
+                <small style="font-size: 0.72rem; color: var(--subtle);">Drag slider or click anywhere on the graph to evaluate the tangent line slope (<span class="math-expr"><i>v</i> = <i>dx</i>/<i>dt</i></span>) at that instant.</small>
+              </div>
+            </div>
+
+            <!-- Velocity vs. Time Graph -->
+            <div class="graph-box">
+              <div class="graph-head">
+                <span class="graph-title">
+                  <span>🟠</span> Velocity vs. Time (<span class="math-expr"><i>v</i>-<i>t</i></span>)
+                </span>
+              </div>
+              <canvas id="canvasVT" class="graph-canvas" width="500" height="260"></canvas>
+              <div class="fit-formula-badge amber" id="badgeLinearFit">
+                <span>Fit requires tangent velocities</span>
+                <span>R² = --</span>
+              </div>
+              <div style="margin-top: 0.65rem; padding: 0.65rem 0.85rem; background: var(--surface-alt); border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--muted);">
+                <strong>Slope of <span class="math-expr"><i>v</i>-<i>t</i></span></strong> represents acceleration (<span class="math-expr"><i>a</i></span>). The shaded area under the line represents total displacement (<span class="math-expr">Δ<i>x</i></span>).
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Mathematical Model (Part 5) -->
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">📐 Part 5: Mathematical Model</h2>
+              <p class="panel-subtitle">Define symbols and establish particular equations from your data</p>
+            </div>
+          </div>
+
+          <div class="analysis-grid">
+            <div class="model-card">
+              <h3>Defined Physics Symbols</h3>
+              <ul style="list-style: none; font-size: 0.85rem; line-height: 1.8; color: var(--ink);">
+                <li>• Let <strong class="math-expr"><i>x</i></strong> be position along the ramp (m)</li>
+                <li>• Let <strong class="math-expr"><i>x</i><sub>0</sub></strong> be initial position (m)</li>
+                <li>• Let <strong class="math-expr"><i>t</i></strong> be clock reading / time elapsed (s)</li>
+                <li>• Let <strong class="math-expr"><i>v</i></strong> be instantaneous velocity (m/s)</li>
+                <li>• Let <strong class="math-expr"><i>v</i><sub>0</sub></strong> be initial velocity (m/s)</li>
+                <li>• Let <strong class="math-expr"><i>a</i></strong> be constant downhill acceleration (m/s²)</li>
+              </ul>
+            </div>
+
+            <div class="model-card">
+              <h3>Particular Equations (From Data)</h3>
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary-teal);">Position-Time Equation:</div>
+              <div class="equation-box" id="mathModelEqPos">Waiting for complete data collection...</div>
+
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-amber-dark); margin-top: 0.5rem;">Velocity-Time Equation:</div>
+              <div class="equation-box" id="mathModelEqVel">Waiting for velocity model...</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Analysis & Model Comparison (Parts 6 & 7) -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">💡 Parts 6 &amp; 7: Analysis &amp; Conclusion Guide</h2>
+          <p class="panel-subtitle">Connect the second-degree coefficient to acceleration and complete the lab analysis</p>
+        </div>
+      </div>
+
+      <div class="analysis-grid">
+        <!-- Direct Coefficient Comparison Card -->
+        <div class="model-card">
+          <h3>Coefficient Relationship</h3>
+          <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.65rem;">
+            Examine how the quadratic position equation relates to the linear velocity equation:
+          </p>
+
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Model Term</th>
+                <th>Position Model Value</th>
+                <th>Velocity Model Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Acceleration Term</strong></td>
+                <td><span class="math-expr"><i>A</i></span> = <strong id="cmpCoeffA">--</strong></td>
+                <td class="match">Slope <span class="math-expr"><i>m</i></span> = <strong id="cmpSlopeM">--</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Initial Velocity Term</strong></td>
+                <td><span class="math-expr"><i>B</i></span> = <strong id="cmpCoeffB">--</strong></td>
+                <td class="match">Intercept <span class="math-expr"><i>b</i></span> = <strong id="cmpInterceptB">--</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top: 0.75rem; font-size: 0.82rem; background: var(--primary-teal-light); border: 1px solid var(--primary-teal-border); border-radius: var(--radius-sm); padding: 0.6rem; color: var(--primary-teal-dark);">
+            💡 <strong>Key Finding:</strong> The second-degree coefficient <span class="math-expr"><i>A</i></span> in the position equation is exactly <strong>half the slope</strong> of the velocity equation: <span class="math-expr"><i>A</i> = ½ · <i>a</i></span>.
+          </div>
+        </div>
+
+        <!-- General Equations Card -->
+        <div class="model-card">
+          <h3>General Kinematics Equations</h3>
+          <div style="font-size: 0.82rem; color: var(--muted); margin-bottom: 0.4rem;">
+            The general models for any object undergoing constant acceleration:
+          </div>
+
+          <div class="equation-box" style="background: var(--surface-alt); border-left: 4px solid var(--primary-teal);">
+            <span class="math-expr"><i>x</i>(<i>t</i>) = ½ · <i>a</i> · <i>t</i>² + <i>v</i><sub>0</sub> · <i>t</i> + <i>x</i><sub>0</sub></span>
+          </div>
+
+          <div class="equation-box" style="background: var(--surface-alt); border-left: 4px solid var(--accent-amber);">
+            <span class="math-expr"><i>v</i>(<i>t</i>) = <i>a</i> · <i>t</i> + <i>v</i><sub>0</sub></span>
+          </div>
+
+          <div style="font-size: 0.82rem; color: var(--ink); line-height: 1.5; margin-top: 0.5rem;">
+            Because acceleration is constant downhill, velocity increases linearly with time, which causes position to grow quadratically with the square of time (<span class="math-expr"><i>t</i>²</span>).
+          </div>
+        </div>
+      </div>
+
+      <!-- Guided Analysis Questions Accordion matching the Lab PDF -->
+      <div style="margin-top: 1rem;">
+        <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-teal-dark); margin-bottom: 0.65rem;">
+          📝 Analysis Questions Helper (Click each question to view guided reasoning)
+        </h3>
+
+        <div class="question-item">
+          <div class="question-header" onclick="this.parentElement.classList.toggle('open');">
+            <span>4. What is the physical meaning of the slope in the velocity vs. time graph?</span>
+            <span>▾</span>
+          </div>
+          <div class="question-body">
+            <strong>Slope = Acceleration (<span class="math-expr"><i>a</i></span>).</strong> The slope of a velocity vs. time graph represents the rate at which the cart's velocity changes each second (measured in <span class="math-expr">m/s²</span> or <span class="math-expr">cm/s²</span>). Because the line is straight, the acceleration is constant.
+          </div>
+        </div>
+
+        <div class="question-item">
+          <div class="question-header" onclick="this.parentElement.classList.toggle('open');">
+            <span>5. What is the physical meaning of the y-intercept in the velocity vs. time graph?</span>
+            <span>▾</span>
+          </div>
+          <div class="question-body">
+            <strong>y-intercept = Initial Velocity (<span class="math-expr"><i>v</i><sub>0</sub></span>).</strong> The y-intercept represents the cart's velocity at clock reading <span class="math-expr"><i>t</i> = 0 s</span>. When released from rest, this value is approximately <span class="math-expr">0 m/s</span>.
+          </div>
+        </div>
+
+        <div class="question-item">
+          <div class="question-header" onclick="this.parentElement.classList.toggle('open');">
+            <span>7. Compare the second-degree coefficient with the slope of the velocity equation.</span>
+            <span>▾</span>
+          </div>
+          <div class="question-body">
+            <strong>Relationship:</strong> The second-degree coefficient <span class="math-expr"><i>A</i></span> in the position equation is equal to <strong>half the slope</strong> of the velocity equation (<span class="math-expr"><i>A</i> = ½ · <i>a</i></span>). This confirms why the kinematic formula contains the factor of <span class="math-expr">½</span>.
+          </div>
+        </div>
+
+        <div class="question-item">
+          <div class="question-header" onclick="this.parentElement.classList.toggle('open');">
+            <span>8. Compare the first-degree coefficient with the y-intercept of the velocity equation.</span>
+            <span>▾</span>
+          </div>
+          <div class="question-body">
+            <strong>Relationship:</strong> The first-degree coefficient <span class="math-expr"><i>B</i></span> in the position equation is equal to the y-intercept of the velocity equation, which corresponds to the initial velocity <span class="math-expr"><i>v</i><sub>0</sub></span> of the cart.
+          </div>
+        </div>
+
+        <div class="question-item">
+          <div class="question-header" onclick="this.parentElement.classList.toggle('open');">
+            <span>9. What is the physical meaning of the y-intercept in the position equation?</span>
+            <span>▾</span>
+          </div>
+          <div class="question-body">
+            <strong>y-intercept = Initial Position (<span class="math-expr"><i>x</i><sub>0</sub></span>).</strong> The y-intercept <span class="math-expr"><i>C</i></span> represents the location of the cart along the track at the start of timing (<span class="math-expr"><i>t</i> = 0 s</span>).
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>© 2026 Vladimir Lopez · The Thinking Experiment · Interactive Physics Simulations</p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" style="position: fixed; bottom: 24px; right: 24px; background: var(--ink); color: #ffffff; padding: 0.75rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); font-size: 0.88rem; font-weight: 600; opacity: 0; transform: translateY(10px); transition: all 0.25s ease; z-index: 1000; pointer-events: none;">
+    Notification
+  </div>
+
+  <style>
+    .question-body { display: none; }
+    .question-item.open .question-body { display: block; }
+    .question-item.open .question-header span:last-child { transform: rotate(180deg); }
+  </style>
+</body>
+</html>
