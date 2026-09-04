@@ -235,7 +235,9 @@ export class DownhillMotionApp {
     // Mode tabs
     this.tabMetronome.addEventListener('click', () => this.setLabMode('metronome'));
     this.tabPhotogate.addEventListener('click', () => this.setLabMode('photogate'));
-    this.tabStopwatch.addEventListener('click', () => this.setLabMode('stopwatch'));
+    if (this.tabStopwatch) {
+      this.tabStopwatch.addEventListener('click', () => this.setLabMode('stopwatch'));
+    }
 
     // Metronome controls
     this.btnMuteSound.addEventListener('click', () => {
@@ -349,20 +351,30 @@ export class DownhillMotionApp {
     this.labMode = mode;
     this.tabMetronome.classList.toggle('active', mode === 'metronome');
     this.tabPhotogate.classList.toggle('active', mode === 'photogate');
-    this.tabStopwatch.classList.toggle('active', mode === 'stopwatch');
+    if (this.tabStopwatch) {
+      this.tabStopwatch.classList.toggle('active', mode === 'stopwatch');
+    }
 
     // Show/hide metronome banner
     this.panelMetronome.style.display = mode === 'metronome' ? 'flex' : 'none';
 
-    // In metronome mode, set default angle to 4.0° so the cart rolls smoothly across 3-4 metronome beats
+    // Set appropriate incline angle for mode
     if (mode === 'metronome') {
       this.angleDeg = 4.0;
       this.sliderAngle.value = 4.0;
       this.valAngle.textContent = '4.0°';
       this.metricAngle.textContent = '4.0°';
       this.updateAcceleration();
+    } else {
+      this.angleDeg = 6.0;
+      this.sliderAngle.value = 6.0;
+      this.valAngle.textContent = '6.0°';
+      this.metricAngle.textContent = '6.0°';
+      this.updateAcceleration();
     }
 
+    // Automatically erase previous data when clicking a different tab
+    this.clearData();
     this.resetSimulation();
   }
 
@@ -382,8 +394,12 @@ export class DownhillMotionApp {
   startSimulation() {
     this.audio.init();
 
+    // If starting a new run or if cart reached the end, clear previous data
     if (this.currentX >= this.trackLength) {
+      this.clearData();
       this.resetSimulation();
+    } else if (this.currentTime === 0.0) {
+      this.clearData();
     }
 
     // In Metronome mode, auto-log release point t = 0.00s, x = 0.00m if starting
